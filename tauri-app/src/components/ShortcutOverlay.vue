@@ -157,7 +157,7 @@ function onBackdropClick(e: MouseEvent) {
 
 .shortcut-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--space-6);
 }
 
