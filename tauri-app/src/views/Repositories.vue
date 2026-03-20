@@ -99,7 +99,7 @@ function prCountForRepo(repoId: number): number {
         <span class="slash">/</span>
         <input
           v-model="newName"
-          placeholder="Repository (e.g. scooda)"
+          placeholder="Repository (e.g. my-project)"
           class="input-field"
           required
         />

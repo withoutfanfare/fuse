@@ -36,9 +36,9 @@
 - **Items added (Design System Adoption section):**
   - [Foundation] Integrate @stuntrocket/ui shared component library and design tokens (P1, M)
   - [UI Migration] Replace bespoke components with @stuntrocket/ui shared components (P1, XL)
-  - [Polish] Achieve full Scooda styleguide visual conformance (P2, L)
+  - [Polish] Achieve full @stuntrocket/ui styleguide visual conformance (P2, L)
 - **Items archived:** none
-- **Observations:** Added Design System Adoption section. Fuse's existing design (CSS custom properties, glassmorphism, dark mode) has significant overlap with Scooda, making it a strong candidate for early adoption. The main challenge is the 55+ component count — the XL migration should be approached by category. Fuse may need a migration from its custom CSS properties to Tailwind v4 as part of the foundation step.
+- **Observations:** Added Design System Adoption section. Fuse's existing design (CSS custom properties, glassmorphism, dark mode) has significant overlap with @stuntrocket/ui, making it a strong candidate for early adoption. The main challenge is the 55+ component count — the XL migration should be approached by category. Fuse may need a migration from its custom CSS properties to Tailwind v4 as part of the foundation step.
 
 ## Cycle: 2026-03-20 18:00
 - **Items added:** none
