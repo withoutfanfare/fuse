@@ -1,0 +1,36 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glowTeal" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(170 154) rotate(51) scale(252 216)">
+      <stop stop-color="#2DD4BF" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#2DD4BF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(362 350) rotate(40) scale(224 188)">
+      <stop stop-color="#A78BFA" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="36" y="36" width="440" height="440" rx="120" fill="#111827"/>
+  <rect x="36" y="36" width="440" height="440" rx="120" fill="url(#glowTeal)"/>
+  <rect x="36" y="36" width="440" height="440" rx="120" fill="url(#glowViolet)"/>
+  <rect x="36.75" y="36.75" width="438.5" height="438.5" rx="119.25" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <rect x="68" y="68" width="376" height="376" rx="98" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="2"/>
+  <path d="M96 154C126 102 186 72 250 72H334C386 72 430 96 454 136C406 114 368 108 322 108H218C164 108 126 124 96 154Z" fill="#FFFFFF" fill-opacity="0.08"/>
+
+  <path d="M154 154H236L308 256L236 358H154C130 358 110 338 110 314V198C110 174 130 154 154 154Z" fill="#2DD4BF" fill-opacity="0.12"/>
+  <path d="M154 154H236L308 256L236 358H154C130 358 110 338 110 314V198C110 174 130 154 154 154Z" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="2"/>
+
+  <rect x="166" y="166" width="86" height="36" rx="18" fill="#F8FAFC"/>
+  <rect x="166" y="310" width="86" height="36" rx="18" fill="#F8FAFC"/>
+  <path d="M228 166L316 251L291 277L203 192L228 166Z" fill="#F8FAFC"/>
+  <path d="M203 320L291 235L316 261L228 346L203 320Z" fill="#F8FAFC"/>
+  <rect x="286" y="238" width="98" height="36" rx="18" fill="#F8FAFC"/>
+
+  <circle cx="294" cy="256" r="28" fill="#14B8A6"/>
+  <circle cx="294" cy="256" r="12" fill="#CCFBF1" fill-opacity="0.9"/>
+  <circle cx="386" cy="256" r="18" fill="#A78BFA"/>
+
+  <circle cx="160" cy="184" r="10" fill="#ECF3FF" fill-opacity="0.58"/>
+  <circle cx="160" cy="328" r="10" fill="#ECF3FF" fill-opacity="0.58"/>
+</svg>

@@ -1,0 +1,219 @@
+<script setup lang="ts">
+withDefaults(defineProps<{
+  /** Layout variant: 'list' for rows, 'cards' for a grid, 'detail' for a page-style layout */
+  variant?: 'list' | 'cards' | 'detail'
+  /** Number of placeholder items to show */
+  count?: number
+}>(), {
+  variant: 'list',
+  count: 4,
+})
+</script>
+
+<template>
+  <div class="content-loader" :class="`content-loader--${variant}`">
+    <!-- List variant: table-like rows -->
+    <template v-if="variant === 'list'">
+      <div v-for="i in count" :key="i" class="loader-row" :style="{ animationDelay: `${i * 80}ms` }">
+        <div class="skeleton-block loader-avatar"></div>
+        <div class="loader-row-text">
+          <div class="skeleton-block loader-title"></div>
+          <div class="skeleton-block loader-subtitle"></div>
+        </div>
+        <div class="skeleton-block loader-badge"></div>
+      </div>
+    </template>
+
+    <!-- Cards variant: grid of card placeholders -->
+    <template v-if="variant === 'cards'">
+      <div v-for="i in count" :key="i" class="loader-card" :style="{ animationDelay: `${i * 80}ms` }">
+        <div class="skeleton-block loader-card-title"></div>
+        <div class="skeleton-block loader-card-body"></div>
+        <div class="loader-card-footer">
+          <div class="skeleton-block loader-card-meta"></div>
+          <div class="skeleton-block loader-card-meta loader-card-meta--short"></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Detail variant: single page layout -->
+    <template v-if="variant === 'detail'">
+      <div class="loader-detail-header">
+        <div class="skeleton-block loader-detail-title"></div>
+        <div class="skeleton-block loader-detail-subtitle"></div>
+      </div>
+      <div class="loader-detail-body">
+        <div v-for="i in count" :key="i" class="loader-detail-section" :style="{ animationDelay: `${i * 100}ms` }">
+          <div class="skeleton-block loader-detail-line"></div>
+          <div class="skeleton-block loader-detail-line loader-detail-line--long"></div>
+          <div class="skeleton-block loader-detail-line loader-detail-line--short"></div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.content-loader {
+  padding: var(--space-2) 0;
+}
+
+/* --- List variant --- */
+.content-loader--list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.loader-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  opacity: 0;
+  animation: loader-fade-in 0.4s ease forwards;
+}
+
+.loader-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.loader-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.loader-title {
+  width: 60%;
+  height: 14px;
+}
+
+.loader-subtitle {
+  width: 35%;
+  height: 10px;
+}
+
+.loader-badge {
+  width: 48px;
+  height: 20px;
+  border-radius: var(--radius-full);
+}
+
+/* --- Cards variant --- */
+.content-loader--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.loader-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  opacity: 0;
+  animation: loader-fade-in 0.4s ease forwards;
+}
+
+.loader-card-title {
+  width: 70%;
+  height: 16px;
+}
+
+.loader-card-body {
+  width: 100%;
+  height: 40px;
+}
+
+.loader-card-footer {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.loader-card-meta {
+  width: 64px;
+  height: 12px;
+}
+
+.loader-card-meta--short {
+  width: 40px;
+}
+
+/* --- Detail variant --- */
+.content-loader--detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.loader-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.loader-detail-title {
+  width: 45%;
+  height: 20px;
+}
+
+.loader-detail-subtitle {
+  width: 25%;
+  height: 12px;
+}
+
+.loader-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.loader-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  opacity: 0;
+  animation: loader-fade-in 0.4s ease forwards;
+}
+
+.loader-detail-line {
+  width: 50%;
+  height: 12px;
+}
+
+.loader-detail-line--long {
+  width: 80%;
+}
+
+.loader-detail-line--short {
+  width: 30%;
+}
+
+/* Staggered fade-in */
+@keyframes loader-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

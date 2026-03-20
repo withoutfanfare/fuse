@@ -1,0 +1,14 @@
+.DS_Store
+*.log
+
+.claude/
+.serena/
+
+tauri-app/node_modules/
+tauri-app/dist/
+tauri-app/src-tauri/target/
+tauri-app/src-tauri/gen/
+
+tauri-app/.env
+tauri-app/.env.*
+!tauri-app/.env.example

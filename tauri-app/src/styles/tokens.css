@@ -1,0 +1,323 @@
+:root {
+  /* Raw palette — warm neutral greys */
+  --grey-50: #fafaf9;
+  --grey-100: #f5f4f2;
+  --grey-200: #e7e5e3;
+  --grey-300: #d6d3d0;
+  --grey-400: #a8a4a0;
+  --grey-500: #78736e;
+  --grey-600: #57524d;
+  --grey-700: #3d3936;
+  --grey-800: #292624;
+  --grey-850: #201e1c;
+  --grey-900: #1a1816;
+  --grey-950: #121110;
+
+  /* Accent — teal (brand) with violet secondary */
+  --teal-400: #2dd4bf;
+  --teal-500: #14b8a6;
+  --teal-600: #0d9488;
+  --violet-400: #a78bfa;
+  --violet-500: #8b5cf6;
+
+  /* Status */
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --yellow-400: #facc15;
+  --yellow-500: #eab308;
+  --purple-400: #c084fc;
+
+  /* Semantic surfaces — dark mode default */
+  --color-surface-base: var(--grey-950);
+  --color-surface-raised: var(--grey-900);
+  --color-surface-panel: rgba(0, 0, 0, 0.3);
+  --color-surface-overlay: rgba(26, 24, 22, 0.8);
+  --color-surface-input: rgba(0, 0, 0, 0.4);
+  --color-surface-hover: rgba(255, 255, 255, 0.04);
+
+  /* Persistent chrome — solid semi-opaque background (no backdrop-filter) */
+  --color-surface-chrome: rgba(18, 17, 16, 0.92);
+
+  /* Text */
+  --color-text-primary: var(--grey-100);
+  --color-text-secondary: var(--grey-400);
+  --color-text-muted: var(--grey-500);
+  --color-text-inverse: var(--grey-950);
+
+  /* Accent */
+  --color-accent: var(--teal-500);
+  --color-accent-hover: var(--teal-400);
+  --color-accent-muted: rgba(20, 184, 166, 0.2);
+
+  /* Borders */
+  --color-border-default: color-mix(in srgb, var(--grey-600) 40%, transparent);
+  --color-border-hover: color-mix(in srgb, var(--grey-500) 50%, transparent);
+  --color-border-focus: var(--teal-500);
+
+  /* Status */
+  --color-status-success: var(--green-400);
+  --color-status-warning: var(--yellow-400);
+  --color-status-danger: var(--red-400);
+  --color-status-info: var(--blue-400);
+
+  /* Risk */
+  --color-risk-low: var(--green-400);
+  --color-risk-medium: var(--yellow-400);
+  --color-risk-high: var(--yellow-500);
+  --color-risk-critical: var(--red-400);
+  --color-risk-gauge-track: rgba(255, 255, 255, 0.08);
+
+  /* Pipeline */
+  --color-pipeline-track: rgba(255, 255, 255, 0.06);
+  --color-pipeline-complete: var(--color-accent);
+
+  /* Shadows — three-tier system */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.18), inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+  --shadow-panel: 0 4px 12px -2px rgb(0 0 0 / 0.3), 0 2px 4px -1px rgb(0 0 0 / 0.2);
+  --shadow-overlay: 0 8px 24px -4px rgb(0 0 0 / 0.5), 0 4px 8px -2px rgb(0 0 0 / 0.3);
+  --shadow-scroll: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  /* Typographic scale — display through caption */
+  --text-display-size: 48px;
+  --text-display-weight: 800;
+  --text-display-tracking: -0.025em;
+  --text-display-leading: 1;
+
+  --text-heading-size: 20px;
+  --text-heading-weight: 700;
+  --text-heading-tracking: -0.01em;
+  --text-heading-leading: 1.3;
+
+  --text-subheading-size: 15px;
+  --text-subheading-weight: 600;
+  --text-subheading-tracking: 0em;
+  --text-subheading-leading: 1.4;
+
+  --text-body-size: 14px;
+  --text-body-weight: 400;
+  --text-body-tracking: 0em;
+  --text-body-leading: 1.5;
+
+  --text-caption-size: 12px;
+  --text-caption-weight: 500;
+  --text-caption-tracking: 0.01em;
+  --text-caption-leading: 1.4;
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+
+  /* Spacing */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radii */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Sidebar */
+  --sidebar-width: 224px;
+  --sidebar-width-collapsed: 56px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Code ligatures — enabled by default, toggled via class */
+  --code-ligatures: common-ligatures contextual;
+  --diff-line-height: 1.6;
+}
+
+/* -------------------------------------------------------
+   Density: Compact
+   40 % reduced padding applied via class on #app
+   ------------------------------------------------------- */
+.density-compact {
+  --space-0-5: 1px;
+  --space-1: 2px;
+  --space-1-5: 4px;
+  --space-2: 5px;
+  --space-3: 7px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-8: 19px;
+  --space-10: 24px;
+  --space-12: 29px;
+}
+
+/* -------------------------------------------------------
+   Code ligatures off — applied via class on #app
+   ------------------------------------------------------- */
+.ligatures-off {
+  --code-ligatures: none;
+}
+
+/* -------------------------------------------------------
+   Light mode — inverted semantic surface tokens.
+   Applied via [data-theme="light"] on <html>.
+   Glassmorphic panels swap to white/grey with reduced
+   saturation; shadows soften; text colours invert.
+   ------------------------------------------------------- */
+[data-theme="light"] {
+  /* Semantic surfaces — light mode */
+  --color-surface-base: var(--grey-100);
+  --color-surface-raised: #ffffff;
+  --color-surface-panel: rgba(255, 255, 255, 0.7);
+  --color-surface-overlay: rgba(255, 255, 255, 0.85);
+  --color-surface-input: rgba(255, 255, 255, 0.8);
+  --color-surface-hover: rgba(0, 0, 0, 0.04);
+
+  /* Persistent chrome — light mode */
+  --color-surface-chrome: rgba(255, 255, 255, 0.92);
+
+  /* Text — dark on light */
+  --color-text-primary: var(--grey-900);
+  --color-text-secondary: var(--grey-600);
+  --color-text-muted: var(--grey-500);
+  --color-text-inverse: #ffffff;
+
+  /* Borders — subtler in light mode */
+  --color-border-default: color-mix(in srgb, var(--grey-300) 70%, transparent);
+  --color-border-hover: color-mix(in srgb, var(--grey-400) 60%, transparent);
+  --color-border-focus: var(--teal-600);
+
+  /* Status — slightly deeper for legibility on white */
+  --color-status-success: var(--green-500);
+  --color-status-warning: var(--yellow-500);
+  --color-status-danger: var(--red-500);
+  --color-status-info: var(--blue-500);
+
+  /* Risk */
+  --color-risk-low: var(--green-500);
+  --color-risk-medium: var(--yellow-500);
+  --color-risk-high: var(--yellow-500);
+  --color-risk-critical: var(--red-500);
+  --color-risk-gauge-track: rgba(0, 0, 0, 0.06);
+
+  /* Pipeline */
+  --color-pipeline-track: rgba(0, 0, 0, 0.06);
+
+  /* Shadows — lighter, less opaque */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.08), inset 0 1px 0 0 rgb(255 255 255 / 0.6);
+  --shadow-panel: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+  --shadow-overlay: 0 8px 24px -4px rgb(0 0 0 / 0.15), 0 4px 8px -2px rgb(0 0 0 / 0.08);
+  --shadow-scroll: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Light-mode blob colours — softer pastels */
+[data-theme="light"] .ambient-blob--1 {
+  background: #f0abfc; /* soft magenta */
+}
+
+[data-theme="light"] .ambient-blob--2 {
+  background: #a5b4fc; /* soft indigo */
+}
+
+[data-theme="light"] .ambient-blob--3 {
+  background: #5eead4; /* soft teal */
+}
+
+/* Light-mode scrollbar */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--grey-400) 40%, transparent);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--grey-500) 50%, transparent);
+}
+
+/* -------------------------------------------------------
+   Focus Mode — hides sidebar and header, expands content
+   to near-full-width for distraction-free review.
+   Applied via .focus-active class on .app-layout (set by
+   the useFocusMode composable).
+   ------------------------------------------------------- */
+.app-layout.focus-active {
+  --sidebar-width: 0;
+}
+
+.app-layout.focus-active .sidebar {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: width var(--transition-normal), opacity var(--transition-normal);
+}
+
+.app-layout.focus-active .app-header {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+
+/* -------------------------------------------------------
+   Reduced motion — respects OS-level preference
+   Disables all transitions and animations for users
+   with vestibular disorders (WCAG 2.1 AA).
+   ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+/* -------------------------------------------------------
+   High contrast mode — toggled via [data-high-contrast]
+   on <html>. Removes translucency, bumps muted text,
+   and strengthens borders for low-vision users.
+   ------------------------------------------------------- */
+[data-high-contrast] {
+  /* Opaque surfaces — remove glassmorphic translucency */
+  --color-surface-base: #0a0a09;
+  --color-surface-raised: #1a1816;
+  --color-surface-panel: #151312;
+  --color-surface-overlay: #1a1816;
+  --color-surface-input: #0f0e0d;
+  --color-surface-hover: rgba(255, 255, 255, 0.1);
+  --color-surface-chrome: #151312;
+
+  /* Brighter text — muted ≥ AA against dark surfaces */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #d6d3d0;
+  --color-text-muted: #a8a4a0;
+
+  /* Stronger borders */
+  --color-border-default: var(--grey-500);
+  --color-border-hover: var(--grey-400);
+  --color-border-focus: var(--teal-400);
+}
+
+/* Ensure focus-visible outlines are ≥ 2 px in high contrast */
+[data-high-contrast] *:focus-visible {
+  outline: 2px solid var(--color-border-focus) !important;
+  outline-offset: 2px !important;
+}

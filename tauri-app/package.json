@@ -1,0 +1,33 @@
+{
+  "name": "fuse",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@stuntrocket/ui": "^0.8.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-notification": "^2.3.3",
+    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-window-state": "^2.4.1",
+    "@types/dompurify": "^3.0.5",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "dompurify": "^3.3.2",
+    "lucide-vue-next": "^0.577.0",
+    "marked": "^17.0.4",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.30",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@vue/tsconfig": "^0.9.0",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3"
+  }
+}

@@ -1,0 +1,39 @@
+/* Page fade transition — fast leave so skeleton appears quickly */
+.page-fade-enter-active {
+  transition: opacity 150ms ease;
+}
+
+.page-fade-leave-active {
+  transition: opacity 60ms ease;
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+/* Card cascade transition (staggered) */
+.card-cascade-enter-active {
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.card-cascade-leave-active {
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.card-cascade-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.card-cascade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.card-cascade-move {
+  transition: transform 250ms ease;
+}

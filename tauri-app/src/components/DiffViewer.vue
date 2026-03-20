@@ -1,0 +1,429 @@
+<script setup lang="ts">
+import { ref, nextTick } from 'vue'
+import { BookmarkPlus } from 'lucide-vue-next'
+import type { DiffFile, DiffLine } from '../types'
+import DiffFileTree from './DiffFileTree.vue'
+
+const props = defineProps<{
+  files: DiffFile[]
+}>()
+
+const emit = defineEmits<{
+  'bookmark-file': [filePath: string, lineStart: number | null, lineEnd: number | null]
+}>()
+
+const sidebarCollapsed = ref(false)
+
+/** Context menu state for right-click "Bookmark this line" */
+const contextMenu = ref<{ visible: boolean; x: number; y: number; filePath: string; lineNumber: number }>({
+  visible: false,
+  x: 0,
+  y: 0,
+  filePath: '',
+  lineNumber: 0,
+})
+
+function scrollToFile(path: string) {
+  nextTick(() => {
+    const el = document.getElementById(`diff-file-${path.replace(/[^a-zA-Z0-9]/g, '-')}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
+}
+
+/**
+ * Scroll to a specific line within a file in the diff.
+ * Used by bookmark navigation (5.2).
+ */
+function scrollToLine(filePath: string, lineNumber: number) {
+  nextTick(() => {
+    // First ensure the file section is visible
+    const fileEl = document.getElementById(`diff-file-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}`)
+    if (!fileEl) return
+
+    // Find the line element within this file section
+    const lineEl = fileEl.querySelector(`[data-line="${lineNumber}"]`) as HTMLElement | null
+    if (lineEl) {
+      lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Add highlight animation
+      lineEl.classList.add('diff-line-highlight')
+      setTimeout(() => lineEl.classList.remove('diff-line-highlight'), 2000)
+    } else {
+      // Fall back to scrolling to the file header
+      fileEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
+}
+
+function handleBookmarkFile(filePath: string) {
+  emit('bookmark-file', filePath, null, null)
+}
+
+function getLineDataAttr(line: DiffLine): number | undefined {
+  return line.newLineNumber ?? line.oldLineNumber
+}
+
+function handleLineContextMenu(event: MouseEvent, filePath: string, line: DiffLine) {
+  const lineNum = line.newLineNumber ?? line.oldLineNumber
+  if (lineNum == null) return
+
+  event.preventDefault()
+  contextMenu.value = {
+    visible: true,
+    x: event.clientX,
+    y: event.clientY,
+    filePath,
+    lineNumber: lineNum,
+  }
+
+  // Close on next click anywhere
+  const close = () => {
+    contextMenu.value.visible = false
+    document.removeEventListener('click', close)
+  }
+  setTimeout(() => document.addEventListener('click', close), 0)
+}
+
+function handleContextMenuBookmark() {
+  emit('bookmark-file', contextMenu.value.filePath, contextMenu.value.lineNumber, contextMenu.value.lineNumber)
+  contextMenu.value.visible = false
+}
+
+defineExpose({ scrollToLine, scrollToFile })
+</script>
+
+<template>
+  <div class="diff-viewer" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <div v-if="!sidebarCollapsed" class="diff-sidebar">
+      <button class="sidebar-toggle" @click="sidebarCollapsed = true" title="Collapse file tree">
+        &laquo;
+      </button>
+      <DiffFileTree :files="files" @select-file="scrollToFile" />
+    </div>
+    <div v-else class="diff-sidebar-collapsed">
+      <button class="sidebar-toggle" @click="sidebarCollapsed = false" title="Expand file tree">
+        &raquo;
+      </button>
+    </div>
+
+    <div class="diff-content">
+      <div v-if="files.length === 0" class="diff-empty">
+        <p>No changes found in this diff.</p>
+      </div>
+
+      <div
+        v-for="file in files"
+        :key="file.path"
+        :id="`diff-file-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}`"
+        class="diff-file-section"
+      >
+        <div class="diff-file-header">
+          <span class="diff-file-path">{{ file.path }}</span>
+          <span class="diff-file-stats">
+            <span class="diff-stat-add">+{{ file.additions }}</span>
+            <span class="diff-stat-del">-{{ file.deletions }}</span>
+          </span>
+          <button
+            class="diff-bookmark-btn"
+            title="Bookmark this file"
+            @click.stop="handleBookmarkFile(file.path)"
+          >
+            <BookmarkPlus :size="14" />
+          </button>
+        </div>
+
+        <div v-for="(hunk, hunkIdx) in file.hunks" :key="hunkIdx" class="diff-hunk">
+          <div class="diff-hunk-header">{{ hunk.header }}</div>
+          <div class="diff-lines">
+            <div
+              v-for="(line, lineIdx) in hunk.lines"
+              :key="lineIdx"
+              class="diff-line"
+              :class="`diff-line-${line.type}`"
+              :data-line="getLineDataAttr(line)"
+              @contextmenu="handleLineContextMenu($event, file.path, line)"
+            >
+              <span class="line-number line-number-old">{{ line.oldLineNumber ?? '' }}</span>
+              <span class="line-number line-number-new">{{ line.newLineNumber ?? '' }}</span>
+              <span class="line-prefix">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>
+              <span class="line-content">{{ line.content }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context menu for right-click bookmark -->
+    <Teleport to="body">
+      <div
+        v-if="contextMenu.visible"
+        class="diff-context-menu"
+        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      >
+        <button class="diff-context-menu-item" @click="handleContextMenuBookmark">
+          <BookmarkPlus :size="14" />
+          Bookmark this line
+        </button>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
+<style scoped>
+.diff-viewer {
+  display: flex;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface-panel);
+  max-height: 80vh;
+}
+
+.diff-sidebar {
+  width: 160px;
+  min-width: 160px;
+  border-right: 1px solid var(--color-border-default);
+  overflow-y: auto;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.diff-sidebar-collapsed {
+  width: 28px;
+  min-width: 28px;
+  border-right: 1px solid var(--color-border-default);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--space-2);
+  flex-shrink: 0;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: var(--space-1);
+  transition: color var(--transition-fast);
+}
+
+.sidebar-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.diff-sidebar .sidebar-toggle {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 1;
+}
+
+.diff-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.diff-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.diff-file-section {
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.diff-file-section:last-child {
+  border-bottom: none;
+}
+
+.diff-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--color-border-default);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  gap: var(--space-2);
+}
+
+.diff-file-path {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-file-stats {
+  display: flex;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.diff-stat-add {
+  color: var(--color-status-success);
+}
+
+.diff-stat-del {
+  color: var(--color-status-danger);
+}
+
+.diff-bookmark-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.diff-bookmark-btn:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.diff-hunk {
+  /* Each hunk block */
+}
+
+.diff-hunk-header {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: rgba(96, 165, 250, 0.08);
+  padding: var(--space-1) var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.diff-lines {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: var(--diff-line-height, 1.6);
+  font-variant-ligatures: var(--code-ligatures, common-ligatures contextual);
+}
+
+.diff-line {
+  display: flex;
+  white-space: pre;
+  min-height: 20px;
+  transition: background 0.3s ease;
+}
+
+.diff-line-add {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.diff-line-remove {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.diff-line-context {
+  background: transparent;
+}
+
+/* Subtle alternating-row stripe for context lines */
+.diff-line-context:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* Bookmark navigation highlight animation (5.2) */
+.diff-line-highlight {
+  background: rgba(234, 179, 8, 0.25) !important;
+  animation: bookmark-highlight-fade 2s ease-out forwards;
+}
+
+@keyframes bookmark-highlight-fade {
+  0% { background: rgba(234, 179, 8, 0.35); }
+  70% { background: rgba(234, 179, 8, 0.15); }
+  100% { background: transparent; }
+}
+
+.line-number {
+  display: inline-block;
+  width: 48px;
+  min-width: 48px;
+  text-align: right;
+  padding-right: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  user-select: none;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.line-prefix {
+  display: inline-block;
+  width: 16px;
+  min-width: 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.diff-line-add .line-prefix {
+  color: var(--color-status-success);
+}
+
+.diff-line-remove .line-prefix {
+  color: var(--color-status-danger);
+}
+
+.line-content {
+  padding-right: var(--space-4);
+  overflow-x: visible;
+}
+</style>
+
+<style>
+/* Context menu — unscoped so Teleport works */
+.diff-context-menu {
+  position: fixed;
+  z-index: 9999;
+  background: var(--color-surface-raised, #1e1e1e);
+  border: 1px solid var(--color-border-default, #333);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  padding: 4px 0;
+  min-width: 180px;
+}
+
+.diff-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--color-text-primary, #e0e0e0);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.diff-context-menu-item:hover {
+  background: rgba(20, 184, 166, 0.15);
+}
+</style>

@@ -1,0 +1,667 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, onBeforeUpdate, watch, nextTick } from 'vue'
+import { AlertTriangle, GitPullRequest, Search, Bookmark, BookmarkCheck } from 'lucide-vue-next'
+import { invoke } from '@tauri-apps/api/core'
+import type { PullRequest, ReviewStatus, Bookmark as BookmarkType } from '../types'
+import type { SortKey } from '../stores/filters'
+import { computeRiskScore } from '../composables/useRiskScore'
+import { useHoverPreview } from '../composables/useHoverPreview'
+import { usePullRequestsStore } from '../stores/pullRequests'
+import RiskGauge from './RiskGauge.vue'
+import SizeBar from './SizeBar.vue'
+import AuthorAvatar from './AuthorAvatar.vue'
+import { SEmptyState } from '@stuntrocket/ui'
+import SkeletonPRTableRow from './skeletons/SkeletonPRTableRow.vue'
+import PRHoverPreview from './PRHoverPreview.vue'
+import QuickStatusPopover from './QuickStatusPopover.vue'
+
+const props = withDefaults(defineProps<{
+  prs: PullRequest[]
+  loading?: boolean
+  hasFilters?: boolean
+  selectable?: boolean
+  selectedIds?: Set<number>
+  sortBy?: SortKey
+  sortAsc?: boolean
+  /** Index of the keyboard-focused row, or -1 for none */
+  focusedIndex?: number
+}>(), {
+  loading: false,
+  hasFilters: false,
+  selectable: false,
+  sortBy: 'risk',
+  sortAsc: false,
+  focusedIndex: -1,
+})
+
+const emit = defineEmits<{
+  'open-detail': [id: number]
+  'update:selectedIds': [ids: Set<number>]
+  'update:sortBy': [key: SortKey]
+  'update:sortAsc': [asc: boolean]
+}>()
+
+const allSelected = computed(() => {
+  if (!props.selectedIds || props.prs.length === 0) return false
+  return props.prs.every(pr => props.selectedIds!.has(pr.id))
+})
+
+function toggleSelectAll() {
+  if (!props.selectedIds) return
+  const next = new Set(props.selectedIds)
+  if (allSelected.value) {
+    props.prs.forEach(pr => next.delete(pr.id))
+  } else {
+    props.prs.forEach(pr => next.add(pr.id))
+  }
+  emit('update:selectedIds', next)
+}
+
+function toggleSelect(prId: number, event: Event) {
+  event.stopPropagation()
+  if (!props.selectedIds) return
+  const next = new Set(props.selectedIds)
+  if (next.has(prId)) {
+    next.delete(prId)
+  } else {
+    next.add(prId)
+  }
+  emit('update:selectedIds', next)
+}
+
+const tableWrapper = ref<HTMLElement | null>(null)
+const scrolled = ref(false)
+const rowRefs = new Map<number, HTMLElement>()
+
+/* Clear stale row refs before each re-render so removed rows do not linger */
+onBeforeUpdate(() => {
+  rowRefs.clear()
+})
+
+function onScroll() {
+  if (tableWrapper.value) {
+    scrolled.value = tableWrapper.value.scrollTop > 0
+  }
+}
+
+onMounted(() => {
+  tableWrapper.value?.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  tableWrapper.value?.removeEventListener('scroll', onScroll)
+})
+
+watch(() => props.focusedIndex, (idx) => {
+  if (idx >= 0) {
+    nextTick(() => {
+      rowRefs.get(idx)?.scrollIntoView({ block: 'nearest' })
+    })
+  }
+})
+
+/** Memoised risk score map — only recomputes when the PR data changes, not on focusedIndex shifts. */
+const riskScoreMap = computed(() => {
+  const map = new Map<number, number>()
+  for (const pr of props.prs) {
+    map.set(pr.id, computeRiskScore(pr))
+  }
+  return map
+})
+
+const sortedPrs = computed(() => {
+  const scores = riskScoreMap.value
+  const withScores = props.prs.map(pr => ({
+    ...pr,
+    _riskScore: scores.get(pr.id) ?? 0,
+  }))
+  withScores.sort((a, b) => {
+    let cmp = 0
+    switch (props.sortBy) {
+      case 'risk':
+        cmp = b._riskScore - a._riskScore
+        break
+      case 'updated':
+        cmp = Date.parse(b.updated_at) - Date.parse(a.updated_at)
+        break
+      case 'age':
+        cmp = Date.parse(a.created_at) - Date.parse(b.created_at)
+        break
+      case 'size':
+        cmp = (b.additions + b.deletions) - (a.additions + a.deletions)
+        break
+    }
+    return props.sortAsc ? -cmp : cmp
+  })
+  return withScores
+})
+
+function toggleSort(key: SortKey) {
+  if (props.sortBy === key) {
+    emit('update:sortAsc', !props.sortAsc)
+  } else {
+    emit('update:sortBy', key)
+    emit('update:sortAsc', false)
+  }
+}
+
+function formatAge(createdAt: string): string {
+  const hours = Math.floor((Date.now() - Date.parse(createdAt)) / 3_600_000)
+  if (hours < 1) return '<1h'
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  return `${days}d`
+}
+
+function ageColourClass(createdAt: string): string {
+  const hours = (Date.now() - Date.parse(createdAt)) / 3_600_000
+  if (hours < 24) return 'age-fresh'
+  if (hours < 72) return 'age-normal'
+  if (hours < 168) return 'age-aging'
+  if (hours < 336) return 'age-old'
+  return 'age-stale'
+}
+
+function stateClass(pr: PullRequest): string {
+  if (pr.merged_at) return 'state-merged'
+  if (pr.closed_at) return 'state-closed'
+  return 'state-open'
+}
+
+function isForbiddenTarget(pr: PullRequest): boolean {
+  const base = pr.base_branch.toLowerCase()
+  return base === 'main' || base === 'master'
+}
+
+/* --- Hover preview (Improvement 4) --- */
+const { hoveredId, previewPosition, isVisible: hoverVisible, onRowEnter, onRowMove, onRowLeave } = useHoverPreview(400)
+
+const hoveredPr = computed(() => {
+  if (!hoveredId.value) return null
+  return sortedPrs.value.find(p => p.id === hoveredId.value) ?? null
+})
+
+/* --- Inline quick-status popover (Improvement 6) --- */
+const prStore = usePullRequestsStore()
+const quickStatusPrId = ref<number | null>(null)
+const quickStatusAnchorRect = ref<DOMRect | null>(null)
+
+const quickStatusPr = computed(() => {
+  if (!quickStatusPrId.value) return null
+  return sortedPrs.value.find(p => p.id === quickStatusPrId.value) ?? null
+})
+
+function openQuickStatus(prId: number, event: MouseEvent) {
+  event.stopPropagation()
+  const target = event.currentTarget as HTMLElement
+  quickStatusAnchorRect.value = target.getBoundingClientRect()
+  quickStatusPrId.value = prId
+}
+
+function closeQuickStatus() {
+  quickStatusPrId.value = null
+  quickStatusAnchorRect.value = null
+}
+
+async function handleQuickStatusSelect(status: ReviewStatus) {
+  if (!quickStatusPrId.value) return
+  await prStore.updateReviewStatus(quickStatusPrId.value, status)
+  /* Refresh the PR list so the badge updates */
+  await prStore.fetchAll()
+}
+
+/* --- Bookmark quick-add (Phase 5.4) --- */
+const bookmarkedPrIds = ref(new Set<number>())
+
+onMounted(async () => {
+  // Load bookmark counts for all visible PRs to show active state
+  try {
+    const allBookmarks = await invoke<BookmarkType[]>('list_all_bookmarks')
+    bookmarkedPrIds.value = new Set(allBookmarks.map(b => b.pr_id))
+  } catch {
+    // Silently ignore — badge is optional
+  }
+})
+
+async function handleQuickBookmark(prId: number, event: MouseEvent) {
+  event.stopPropagation()
+  try {
+    await invoke('create_bookmark', {
+      prId,
+      filePath: '(general)',
+      lineStart: null,
+      lineEnd: null,
+      note: '',
+      category: 'note',
+    })
+    bookmarkedPrIds.value = new Set([...bookmarkedPrIds.value, prId])
+  } catch {
+    // Silently fail
+  }
+}
+</script>
+
+<template>
+  <div ref="tableWrapper" class="pr-table-wrapper" :class="{ scrolled }">
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th v-if="selectable" class="col-select">
+            <input
+              type="checkbox"
+              class="row-checkbox"
+              :checked="allSelected"
+              @change="toggleSelectAll"
+            />
+          </th>
+          <th class="col-risk sortable" @click="toggleSort('risk')">
+            Risk
+            <svg v-if="sortBy === 'risk'" class="sort-chevron" :class="{ 'sort-asc': sortAsc }" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l3 3 3-3" /></svg>
+          </th>
+          <th class="col-pr">PR</th>
+          <th class="col-author">Author</th>
+          <th class="col-branch">Branch</th>
+          <th class="col-size sortable" @click="toggleSort('size')">
+            Size
+            <svg v-if="sortBy === 'size'" class="sort-chevron" :class="{ 'sort-asc': sortAsc }" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l3 3 3-3" /></svg>
+          </th>
+          <th class="col-age sortable" @click="toggleSort('age')">
+            Age
+            <svg v-if="sortBy === 'age'" class="sort-chevron" :class="{ 'sort-asc': sortAsc }" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l3 3 3-3" /></svg>
+          </th>
+          <th class="col-status">Status</th>
+          <th class="col-review">Review</th>
+          <th class="col-bookmark" title="Bookmark"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <SkeletonPRTableRow v-if="loading" />
+        <template v-else>
+          <tr
+            v-for="(pr, idx) in sortedPrs"
+            :key="pr.id"
+            :ref="el => { if (el) rowRefs.set(idx, el as HTMLElement) }"
+            v-memo="[pr, idx === focusedIndex, selectedIds?.has(pr.id)]"
+            class="pr-row"
+            :class="{
+              'pr-row-selected': selectable && selectedIds?.has(pr.id),
+              'pr-row--focused': idx === focusedIndex,
+            }"
+            @click="emit('open-detail', pr.id)"
+            @mouseenter="onRowEnter(pr.id, $event)"
+            @mousemove="onRowMove"
+            @mouseleave="onRowLeave"
+          >
+            <td v-if="selectable" class="col-select" @click.stop>
+              <input
+                type="checkbox"
+                class="row-checkbox"
+                :checked="selectedIds?.has(pr.id)"
+                @change="toggleSelect(pr.id, $event)"
+              />
+            </td>
+            <td class="col-risk">
+              <RiskGauge :score="pr._riskScore" :size="28" />
+            </td>
+            <td class="col-pr">
+              <span class="pr-number">#{{ pr.number }}</span>
+              <span class="pr-title-text">{{ pr.title }}</span>
+            </td>
+            <td class="col-author">
+              <AuthorAvatar :username="pr.author" />
+              {{ pr.author }}
+            </td>
+            <td class="col-branch">
+              <code>{{ pr.head_branch }}</code>
+              <span class="branch-arrow">→</span>
+              <code :class="{ 'forbidden-target': isForbiddenTarget(pr) }">{{ pr.base_branch }}</code>
+              <AlertTriangle v-if="isForbiddenTarget(pr)" :size="14" class="target-warn" title="PRs should target staging, not main/master" />
+            </td>
+            <td class="col-size">
+              <span class="additions">+{{ pr.additions }}</span>
+              <span class="deletions">-{{ pr.deletions }}</span>
+              <span class="files">{{ pr.changed_files }}f</span>
+              <SizeBar :additions="pr.additions" :deletions="pr.deletions" />
+            </td>
+            <td class="col-age" :class="ageColourClass(pr.created_at)">{{ formatAge(pr.created_at) }}</td>
+            <td class="col-status">
+              <span class="state-badge" :class="stateClass(pr)">
+                {{ pr.merged_at ? 'Merged' : pr.closed_at ? 'Closed' : pr.is_draft ? 'Draft' : 'Open' }}
+              </span>
+              <span
+                v-if="pr.mergeable === 'CONFLICTING'"
+                class="conflict-badge-inline"
+                title="This PR has merge conflicts"
+              >Conflicts</span>
+            </td>
+            <td class="col-review">
+              <span
+                v-if="pr.review_status"
+                class="review-badge review-badge--clickable"
+                :class="[`review-${pr.review_status}`]"
+                title="Click to change status"
+                @click.stop="openQuickStatus(pr.id, $event)"
+              >
+                {{ (pr.review_status ?? '').replace(/_/g, ' ') }}
+              </span>
+              <span
+                v-else
+                class="review-badge review-badge--clickable review-pending"
+                title="Click to change status"
+                @click.stop="openQuickStatus(pr.id, $event)"
+              >
+                pending
+              </span>
+            </td>
+            <td class="col-bookmark" @click.stop>
+              <button
+                class="bookmark-quick-btn"
+                :class="{ 'bookmark-active': bookmarkedPrIds.has(pr.id) }"
+                :title="bookmarkedPrIds.has(pr.id) ? 'PR has bookmarks' : 'Quick bookmark this PR'"
+                @click="handleQuickBookmark(pr.id, $event)"
+              >
+                <component :is="bookmarkedPrIds.has(pr.id) ? BookmarkCheck : Bookmark" :size="14" />
+              </button>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <SEmptyState
+      v-if="!loading && prs.length === 0"
+      :title="hasFilters ? 'No matches' : 'No pull requests'"
+      :description="hasFilters ? 'No pull requests match the current filters. Try adjusting your selection.' : 'There are no pull requests to display yet.'"
+    >
+      <template #icon><component :is="hasFilters ? Search : GitPullRequest" :size="36" /></template>
+    </SEmptyState>
+
+    <!-- Hover preview card (Improvement 4) -->
+    <PRHoverPreview
+      v-if="hoverVisible && hoveredPr"
+      :pr="hoveredPr"
+      :position="previewPosition"
+    />
+
+    <!-- Inline quick-status popover (Improvement 6) -->
+    <QuickStatusPopover
+      v-if="quickStatusPrId !== null && quickStatusAnchorRect && quickStatusPr"
+      :current-status="(quickStatusPr.review_status as ReviewStatus | null)"
+      :anchor-rect="quickStatusAnchorRect"
+      @select="handleQuickStatusSelect"
+      @close="closeQuickStatus"
+    />
+  </div>
+</template>
+
+<style scoped>
+.pr-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.pr-table-wrapper.scrolled thead th {
+  box-shadow: var(--shadow-scroll);
+}
+
+.pr-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pr-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.pr-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+  white-space: nowrap;
+  user-select: none;
+  background: var(--color-surface-raised);
+}
+
+.pr-table th.sortable {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.pr-table th.sortable:hover {
+  color: var(--color-accent);
+}
+
+/* Sort direction chevron indicator */
+.sort-chevron {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 2px;
+  transition: transform var(--transition-fast);
+}
+
+.sort-chevron.sort-asc {
+  transform: rotate(180deg);
+}
+
+.pr-row {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.pr-row:hover {
+  background: var(--color-surface-hover);
+}
+
+.pr-row td {
+  padding: var(--space-3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.pr-row:last-child td {
+  border-bottom: none;
+}
+
+.col-pr {
+  max-width: 350px;
+}
+
+.pr-number {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  margin-right: var(--space-2);
+  font-size: 12px;
+}
+
+.pr-title-text {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.col-author {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.col-branch code {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-raised);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.branch-arrow {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  margin: 0 var(--space-1);
+}
+
+.forbidden-target {
+  background: rgba(234, 179, 8, 0.15) !important;
+  color: var(--color-status-warning) !important;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.target-warn {
+  font-size: 12px;
+  margin-left: var(--space-1);
+  cursor: help;
+}
+
+.col-size {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.additions { color: var(--color-status-success); }
+.deletions { color: var(--color-status-danger); margin: 0 var(--space-1); }
+.files { color: var(--color-text-muted); }
+
+.col-age {
+  font-family: var(--font-mono);
+}
+
+/* PR age colour coding */
+.age-fresh {
+  color: var(--color-status-success);
+}
+
+.age-normal {
+  color: var(--color-text-secondary);
+}
+
+.age-aging {
+  color: var(--color-status-warning);
+}
+
+.age-old {
+  color: var(--color-risk-high);
+}
+
+.age-stale {
+  color: var(--color-status-danger);
+}
+
+.state-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.state-open { background: rgba(34, 197, 94, 0.2); color: var(--color-status-success); }
+.state-merged { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+.state-closed { background: rgba(220, 38, 38, 0.2); color: var(--color-status-danger); }
+
+.review-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  text-transform: capitalize;
+}
+
+.review-pending { background: rgba(100, 116, 139, 0.2); color: var(--color-text-muted); }
+.review-in_progress { background: rgba(59, 130, 246, 0.2); color: var(--color-status-info); }
+.review-reviewed { background: rgba(234, 179, 8, 0.2); color: var(--color-status-warning); }
+.review-approved { background: rgba(34, 197, 94, 0.2); color: var(--color-status-success); }
+.review-changes_requested { background: rgba(220, 38, 38, 0.2); color: var(--color-status-danger); }
+
+/* Clickable review badge for quick-status popover */
+.review-badge--clickable {
+  cursor: pointer;
+  transition: filter var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.review-badge--clickable:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 0 2px var(--color-accent-muted);
+}
+
+.col-select {
+  width: 40px;
+  text-align: center;
+}
+
+.row-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.pr-row-selected {
+  background: rgba(20, 184, 166, 0.06);
+}
+
+.pr-row-selected:hover {
+  background: rgba(20, 184, 166, 0.1);
+}
+
+/* Keyboard-focused row highlight */
+.pr-row--focused {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  background: rgba(20, 184, 166, 0.08);
+}
+
+.pr-row--focused:hover {
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.conflict-badge-inline {
+  display: inline-block;
+  margin-left: var(--space-1);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-status-danger);
+  background: rgba(220, 38, 38, 0.2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-full);
+  cursor: help;
+}
+
+.col-bookmark {
+  width: 36px;
+  text-align: center;
+}
+
+.bookmark-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.bookmark-quick-btn:hover {
+  color: var(--color-accent);
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.bookmark-quick-btn.bookmark-active {
+  color: var(--color-accent);
+}
+
+</style>
