@@ -69,14 +69,18 @@ pub fn sync_pull_requests_incremental(
         let mut stmt = db.prepare(
             "SELECT id, owner, name, last_delta_sync_at FROM repositories WHERE id = ?1",
         )?;
-        stmt.query_map([id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?
-            .collect::<Result<Vec<_>, _>>()?
+        let result = stmt
+            .query_map([id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
     } else {
         let mut stmt = db.prepare(
             "SELECT id, owner, name, last_delta_sync_at FROM repositories",
         )?;
-        stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?
-            .collect::<Result<Vec<_>, _>>()?
+        let result = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
     };
 
     drop(db);

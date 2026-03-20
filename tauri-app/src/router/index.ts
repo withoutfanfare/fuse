@@ -11,4 +11,5 @@ export const routes: RouteRecordRaw[] = [
   { path: '/digest', name: 'digest', component: () => import('../views/DigestView.vue') },
   { path: '/bookmarks', name: 'bookmarks', component: () => import('../views/BookmarksView.vue') },
   { path: '/settings', name: 'settings', component: () => import('../views/Settings.vue') },
+  { path: '/aggregate', name: 'aggregate', component: () => import('../views/AggregateDashboard.vue') },
 ]

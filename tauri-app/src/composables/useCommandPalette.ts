@@ -75,7 +75,9 @@ export function useCommandPalette(
     { id: 'nav-bookmarks', icon: '📌', title: 'Bookmarks', subtitle: 'Navigation', action: () => router.push('/bookmarks') },
     { id: 'nav-repos', icon: '📁', title: 'Repositories', subtitle: 'Navigation', action: () => router.push('/repositories') },
     { id: 'nav-settings', icon: '⚙️', title: 'Settings', subtitle: 'Navigation', action: () => router.push('/settings') },
+    { id: 'nav-aggregate', icon: '📋', title: 'Aggregate Dashboard', subtitle: 'Navigation', action: () => router.push('/aggregate') },
     { id: 'action-sync', icon: '🔄', title: 'Sync all repositories', subtitle: 'Action', action: () => prStore.syncAll() },
+    { id: 'action-sync-delta', icon: '⚡', title: 'Incremental sync (delta)', subtitle: 'Action', action: () => prStore.syncIncremental() },
     { id: 'action-refresh', icon: '♻️', title: 'Refresh pull requests', subtitle: 'Action', action: () => prStore.fetchAll() },
   ]
 

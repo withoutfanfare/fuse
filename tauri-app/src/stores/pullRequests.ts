@@ -39,6 +39,34 @@ export const usePullRequestsStore = defineStore('pullRequests', () => {
     }
   }
 
+  async function syncIncremental(repoId?: number): Promise<SyncResult[]> {
+    syncing.value = true
+    error.value = null
+    const toast = useToastStore()
+    try {
+      const syncParams: Record<string, unknown> = {}
+      if (repoId !== undefined) syncParams.repoId = repoId
+      const results = await invoke<SyncResult[]>('sync_pull_requests_incremental', syncParams)
+      lastSynced.value = new Date().toISOString()
+      await Promise.all([fetchAll(), fetchStats()])
+      invoke('refresh_menu')
+      const failures = results.filter(r => r.error)
+      if (failures.length > 0) {
+        for (const f of failures) {
+          toast.addToast('error', `Sync failed: ${f.repo_name}`, f.error ?? undefined, 8000)
+        }
+      }
+      return results
+    } catch (e) {
+      const msg = String(e)
+      error.value = msg
+      toast.addToast('error', 'Incremental sync failed', msg, 8000)
+      return []
+    } finally {
+      syncing.value = false
+    }
+  }
+
   async function syncAll(repoId?: number): Promise<SyncResult[]> {
     syncing.value = true
     error.value = null
@@ -224,7 +252,7 @@ export const usePullRequestsStore = defineStore('pullRequests', () => {
   return {
     prs, loading, syncing, error, lastSynced, stats,
     openPrs, pendingReview,
-    fetchAll, fetchOne, syncAll, updateReviewStatus, fetchStats, fetchRules, setRules,
+    fetchAll, fetchOne, syncAll, syncIncremental, updateReviewStatus, fetchStats, fetchRules, setRules,
     approvePr, mergePr, batchApprove, batchMerge, fetchStalePrs, closePr,
     fetchAgeDistribution, fetchReviewVelocity, fetchAuthorStats, fetchDailyPrCounts,
   }

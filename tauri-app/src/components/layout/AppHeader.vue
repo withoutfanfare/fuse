@@ -35,6 +35,7 @@ onUnmounted(() => {
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
     '/dashboard': 'Dashboard',
+    '/aggregate': 'Aggregate Dashboard',
     '/prs': 'Pull Requests',
     '/repositories': 'Repositories',
     '/settings': 'Settings',

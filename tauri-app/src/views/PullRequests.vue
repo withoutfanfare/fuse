@@ -10,6 +10,9 @@ import type { PrListContext } from '../composables/useKeyboardShortcuts'
 import PRTable from '../components/PRTable.vue'
 import BatchActionBar from '../components/BatchActionBar.vue'
 import GroupFilter from '../components/GroupFilter.vue'
+import FilterPresetsBar from '../components/FilterPresetsBar.vue'
+import OfflineBanner from '../components/OfflineBanner.vue'
+import { useOfflineMode } from '../composables/useOfflineMode'
 
 const router = useRouter()
 const prStore = usePullRequestsStore()
@@ -17,6 +20,7 @@ const repoStore = useRepositoriesStore()
 const filters = useFiltersStore()
 const groupsStore = useGroupsStore()
 const filterGroupId = ref<number | null>(null)
+const { isOnline, timeSinceSync, recordSync } = useOfflineMode()
 
 onMounted(async () => {
   if (repoStore.repos.length === 0) await repoStore.fetchAll()
@@ -144,6 +148,13 @@ onUnmounted(() => {
 
 <template>
   <div class="pull-requests-view">
+    <OfflineBanner
+      :is-online="isOnline"
+      :time-since-sync="timeSinceSync"
+      :syncing="prStore.syncing"
+      @retry="prStore.syncAll()"
+    />
+    <FilterPresetsBar class="presets-row" />
     <div class="filters-bar">
       <div class="filter-group">
         <label class="filter-label">Repository</label>
@@ -219,6 +230,10 @@ onUnmounted(() => {
 <style scoped>
 .pull-requests-view {
   padding-bottom: 80px;
+}
+
+.presets-row {
+  margin-bottom: var(--space-3);
 }
 
 .filters-bar {

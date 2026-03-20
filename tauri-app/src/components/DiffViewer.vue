@@ -1,12 +1,46 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted, computed } from 'vue'
 import { BookmarkPlus } from 'lucide-vue-next'
 import type { DiffFile, DiffLine } from '../types'
 import DiffFileTree from './DiffFileTree.vue'
+import { useSyntaxHighlight } from '../composables/useSyntaxHighlight'
 
 const props = defineProps<{
   files: DiffFile[]
 }>()
+
+const { ensureLoaded, detectLanguage, highlightLine, loaded: hlLoaded } = useSyntaxHighlight()
+
+// Lazily load highlight.js when component mounts
+onMounted(() => {
+  ensureLoaded()
+})
+
+/** Cache detected languages per file to avoid repeated lookups. */
+const fileLanguageMap = computed(() => {
+  const map: Record<string, string | null> = {}
+  for (const file of props.files) {
+    map[file.path] = detectLanguage(file.path)
+  }
+  return map
+})
+
+/**
+ * Get highlighted HTML for a diff line's content.
+ * Returns raw HTML that must be bound with v-html.
+ */
+function getHighlightedContent(filePath: string, content: string): string {
+  if (!hlLoaded.value) return escapeHtml(content)
+  const lang = fileLanguageMap.value[filePath]
+  return highlightLine(content, lang)
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
 
 const emit = defineEmits<{
   'bookmark-file': [filePath: string, lineStart: number | null, lineEnd: number | null]
@@ -147,7 +181,7 @@ defineExpose({ scrollToLine, scrollToFile })
               <span class="line-number line-number-old">{{ line.oldLineNumber ?? '' }}</span>
               <span class="line-number line-number-new">{{ line.newLineNumber ?? '' }}</span>
               <span class="line-prefix">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>
-              <span class="line-content">{{ line.content }}</span>
+              <span class="line-content" v-html="getHighlightedContent(file.path, line.content)" />
             </div>
           </div>
         </div>
@@ -397,6 +431,29 @@ defineExpose({ scrollToLine, scrollToFile })
 </style>
 
 <style>
+/* highlight.js theme colours for dark mode — applied to diff content */
+.diff-viewer .hljs-keyword { color: #c678dd; }
+.diff-viewer .hljs-string { color: #98c379; }
+.diff-viewer .hljs-number { color: #d19a66; }
+.diff-viewer .hljs-comment { color: #5c6370; font-style: italic; }
+.diff-viewer .hljs-function { color: #61afef; }
+.diff-viewer .hljs-title { color: #61afef; }
+.diff-viewer .hljs-params { color: #abb2bf; }
+.diff-viewer .hljs-type { color: #e5c07b; }
+.diff-viewer .hljs-built_in { color: #e06c75; }
+.diff-viewer .hljs-literal { color: #56b6c2; }
+.diff-viewer .hljs-attr { color: #d19a66; }
+.diff-viewer .hljs-selector-class { color: #d19a66; }
+.diff-viewer .hljs-selector-tag { color: #e06c75; }
+.diff-viewer .hljs-tag { color: #e06c75; }
+.diff-viewer .hljs-name { color: #e06c75; }
+.diff-viewer .hljs-attribute { color: #d19a66; }
+.diff-viewer .hljs-variable { color: #e06c75; }
+.diff-viewer .hljs-regexp { color: #98c379; }
+.diff-viewer .hljs-symbol { color: #56b6c2; }
+.diff-viewer .hljs-meta { color: #5c6370; }
+.diff-viewer .hljs-punctuation { color: #abb2bf; }
+
 /* Context menu — unscoped so Teleport works */
 .diff-context-menu {
   position: fixed;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
+import { defineAsyncComponent, onMounted, computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
 import { usePullRequestsStore } from '../stores/pullRequests'
@@ -18,6 +18,7 @@ import PriorityQueue from '../components/PriorityQueue.vue'
 import WorkloadDashboard from '../components/WorkloadDashboard.vue'
 import DependencyGraph from '../components/DependencyGraph.vue'
 import ContentLoader from '../components/ContentLoader.vue'
+const ReviewTimeDashboard = defineAsyncComponent(() => import('../components/ReviewTimeDashboard.vue'))
 import type { AgeBucket, VelocityPoint, DailyPrCounts, PullRequest, PriorityQueueItem, ReviewerWorkloadStats } from '../types'
 
 const router = useRouter()
@@ -263,6 +264,10 @@ function openDetail(id: number) {
       </section>
 
       <StalePrSection :stale-prs="stalePrs" :loading="staleLoading" @update:stale-prs="stalePrs = $event" />
+
+      <section class="review-time-section">
+        <ReviewTimeDashboard />
+      </section>
     </template>
   </div>
 </template>
@@ -322,6 +327,11 @@ function openDetail(id: number) {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   padding: var(--space-4);
+}
+
+.review-time-section {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-5);
 }
 
 </style>

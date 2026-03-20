@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { LayoutDashboard, GitPullRequest, FolderGit2, Settings, ChevronLeft, ChevronRight, Users, Clock, BarChart3, Bookmark } from 'lucide-vue-next'
+import { LayoutDashboard, GitPullRequest, FolderGit2, Settings, ChevronLeft, ChevronRight, Users, Clock, BarChart3, Bookmark, LayoutGrid } from 'lucide-vue-next'
 import { usePullRequestsStore } from '../../stores/pullRequests'
 import { useSidebarState } from '../../composables/useSidebarState'
 import { useRecentPrs } from '../../composables/useRecentPrs'
@@ -23,6 +23,7 @@ const navGroups = [
     label: 'Review',
     items: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/aggregate', label: 'Aggregate', icon: LayoutGrid },
       { path: '/prs', label: 'Pull Requests', icon: GitPullRequest, badge: true },
       { path: '/bookmarks', label: 'Bookmarks', icon: Bookmark, bookmarkBadge: true },
     ],

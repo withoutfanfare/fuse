@@ -43,6 +43,7 @@ import DeploymentStatus from '../components/DeploymentStatus.vue'
 import TabBar from '../components/TabBar.vue'
 import BookmarksList from '../components/BookmarksList.vue'
 const HandoffComposer = defineAsyncComponent(() => import('../components/HandoffComposer.vue'))
+const ReviewSummaryPanel = defineAsyncComponent(() => import('../components/ReviewSummaryPanel.vue'))
 
 const route = useRoute()
 const router = useRouter()
@@ -620,6 +621,16 @@ function formatDate(dateStr: string): string {
               {{ merging ? 'Merging…' : 'Squash & Merge' }}
             </button>
           </div>
+
+          <ReviewSummaryPanel
+            :pr="pr"
+            :checked-rules="checkedRules"
+            :review-rules="reviewRules"
+            :bookmarks="[]"
+            :review-elapsed-seconds="reviewElapsed"
+            :files-reviewed="diffFiles.length"
+            :total-files="pr.changed_files"
+          />
         </section>
         </template>
 
