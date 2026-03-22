@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { SButton, SInput, SFormField, SSelect, SBadge, SToggle, SIconButton, SCard, SEmptyState, SSpinner } from '@stuntrocket/ui'
 import { useLabelRules } from '../composables/useLabelRules'
 import type { LabelRuleActionType } from '../types'
 
@@ -16,6 +17,8 @@ const actionTypeOptions: { value: LabelRuleActionType; label: string; placeholde
   { value: 'add_checklist', label: 'Add Checklist Items', placeholder: 'e.g. Check migrations, Run tests' },
   { value: 'assign_group', label: 'Assign Review Group', placeholder: 'e.g. security-team' },
 ]
+
+const actionSelectOptions = actionTypeOptions.map(o => ({ value: o.value, label: o.label }))
 
 onMounted(() => {
   fetchRules()
@@ -87,50 +90,48 @@ function updatePlaceholder() {
     <p v-if="error" class="rules-error">{{ error }}</p>
 
     <!-- Create form -->
-    <div class="create-form">
+    <SCard variant="content" class="create-form">
       <div class="form-row">
-        <div class="form-field">
-          <label class="form-label">Label Pattern</label>
-          <input
+        <SFormField label="Label Pattern">
+          <SInput
             v-model="newPattern"
-            type="text"
             placeholder="e.g. bug, priority:*, security*"
-            class="input-field"
           />
-        </div>
-        <div class="form-field">
-          <label class="form-label">Action</label>
-          <select v-model="newActionType" class="input-select" @change="updatePlaceholder">
-            <option v-for="opt in actionTypeOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-        </div>
-        <div class="form-field form-field-config">
-          <label class="form-label">Configuration</label>
-          <input
+        </SFormField>
+        <SFormField label="Action">
+          <SSelect
+            v-model="newActionType"
+            :options="actionSelectOptions"
+            @update:model-value="updatePlaceholder"
+          />
+        </SFormField>
+        <SFormField label="Configuration" class="form-field-config">
+          <SInput
             v-model="newConfigValue"
-            type="text"
             :placeholder="currentPlaceholder"
-            class="input-field"
           />
-        </div>
-        <button
-          class="btn-add"
+        </SFormField>
+        <SButton
+          variant="primary"
           :disabled="!newPattern.trim() || creating"
+          :loading="creating"
           @click="handleCreate"
         >
-          {{ creating ? 'Adding...' : 'Add Rule' }}
-        </button>
+          Add Rule
+        </SButton>
       </div>
-    </div>
+    </SCard>
 
     <!-- Rules list -->
-    <div v-if="loading" class="rules-loading">Loading rules...</div>
-
-    <div v-else-if="rules.length === 0" class="rules-empty">
-      No label rules configured yet. Add one above to get started.
+    <div v-if="loading" class="rules-loading">
+      <SSpinner /> Loading rules...
     </div>
+
+    <SEmptyState
+      v-else-if="rules.length === 0"
+      title="No rules"
+      description="No label rules configured yet. Add one above to get started."
+    />
 
     <div v-else class="rules-list">
       <div
@@ -140,11 +141,9 @@ function updatePlaceholder() {
         :class="{ disabled: !rule.enabled }"
       >
         <div class="rule-toggle">
-          <input
-            type="checkbox"
-            :checked="rule.enabled"
-            @change="handleToggle(rule.id, !rule.enabled)"
-            class="rule-checkbox"
+          <SToggle
+            :model-value="rule.enabled"
+            @update:model-value="handleToggle(rule.id, !rule.enabled)"
           />
         </div>
         <div class="rule-body">
@@ -152,13 +151,13 @@ function updatePlaceholder() {
             <code>{{ rule.label_pattern }}</code>
           </div>
           <div class="rule-action">
-            <span class="action-badge">{{ actionLabel(rule.action_type) }}</span>
+            <SBadge variant="accent">{{ actionLabel(rule.action_type) }}</SBadge>
             <span class="action-config">{{ configSummary(rule.action_type, rule.action_config) }}</span>
           </div>
         </div>
-        <button class="btn-delete" @click="handleDelete(rule.id)" title="Delete rule">
+        <SIconButton size="sm" @click="handleDelete(rule.id)" title="Delete rule">
           &times;
-        </button>
+        </SIconButton>
       </div>
     </div>
   </div>
@@ -198,11 +197,6 @@ function updatePlaceholder() {
 }
 
 .create-form {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
   margin-bottom: var(--space-4);
 }
 
@@ -213,83 +207,16 @@ function updatePlaceholder() {
   flex-wrap: wrap;
 }
 
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
 .form-field-config {
   flex: 1;
   min-width: 160px;
 }
 
-.form-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.input-field {
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  transition: border-color var(--transition-fast);
-  min-width: 140px;
-}
-
-.input-field:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.input-select {
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  transition: border-color var(--transition-fast);
-}
-
-.input-select:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-add {
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  font-weight: 600;
-  font-size: 13px;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background var(--transition-fast);
-}
-
-.btn-add:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.btn-add:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.rules-loading,
-.rules-empty {
-  text-align: center;
+.rules-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: center;
   padding: var(--space-5);
   color: var(--color-text-muted);
   font-size: 13px;
@@ -320,11 +247,6 @@ function updatePlaceholder() {
   flex-shrink: 0;
 }
 
-.rule-checkbox {
-  cursor: pointer;
-  accent-color: var(--color-accent);
-}
-
 .rule-body {
   flex: 1;
   min-width: 0;
@@ -351,33 +273,7 @@ function updatePlaceholder() {
   font-size: 12px;
 }
 
-.action-badge {
-  font-weight: 600;
-  font-size: 11px;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--color-accent-muted);
-  color: var(--color-accent);
-}
-
 .action-config {
   color: var(--color-text-muted);
-}
-
-.btn-delete {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 18px;
-  line-height: 1;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-delete:hover {
-  color: var(--color-status-danger);
-  background: rgba(220, 38, 38, 0.1);
 }
 </style>

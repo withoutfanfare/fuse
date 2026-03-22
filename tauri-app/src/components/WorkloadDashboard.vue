@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SButton, SCard, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
 import type { ReviewerWorkloadStats } from '../types'
 import ContentLoader from './ContentLoader.vue'
 
@@ -43,17 +44,17 @@ function barWidth(count: number): string {
 <template>
   <div class="workload-dashboard">
     <div class="workload-header">
-      <h2 class="section-title">Reviewer Workload</h2>
-      <button class="refresh-btn" @click="emit('refresh')" :disabled="loading">
-        {{ loading ? 'Loading...' : 'Refresh' }}
-      </button>
+      <SSectionHeader title="Reviewer Workload" />
+      <SButton variant="secondary" size="sm" @click="emit('refresh')" :disabled="loading" :loading="loading">
+        Refresh
+      </SButton>
     </div>
 
     <p v-if="error" class="workload-error">{{ error }}</p>
 
     <ContentLoader v-if="loading" variant="list" :count="3" />
 
-    <div v-else-if="workload.length > 0" class="workload-list">
+    <SCard v-else-if="workload.length > 0" variant="content">
       <div class="workload-legend">
         <span class="legend-item">
           <span class="legend-swatch legend-swatch--completed" />
@@ -69,54 +70,58 @@ function barWidth(count: number): string {
         </span>
       </div>
 
-      <div
-        v-for="reviewer in workload"
-        :key="reviewer.reviewer"
-        class="workload-row"
-      >
-        <div class="reviewer-info">
-          <span class="reviewer-name">{{ reviewer.reviewer }}</span>
-          <span class="reviewer-response">
-            {{ formatResponseTime(reviewer.avg_response_hours) }} avg
-          </span>
-        </div>
-
-        <div class="bar-container">
-          <div class="bar-track">
-            <div
-              class="bar-segment bar-segment--completed"
-              :style="{ width: barWidth(reviewer.completed_count) }"
-              :title="`Completed: ${reviewer.completed_count}`"
-            />
-            <div
-              class="bar-segment bar-segment--assigned"
-              :style="{ width: barWidth(reviewer.assigned_count) }"
-              :title="`Assigned: ${reviewer.assigned_count}`"
-            />
-            <div
-              class="bar-segment bar-segment--overdue"
-              :style="{ width: barWidth(reviewer.overdue_count) }"
-              :title="`Overdue: ${reviewer.overdue_count}`"
-            />
+      <div class="workload-list">
+        <div
+          v-for="reviewer in workload"
+          :key="reviewer.reviewer"
+          class="workload-row"
+        >
+          <div class="reviewer-info">
+            <span class="reviewer-name">{{ reviewer.reviewer }}</span>
+            <span class="reviewer-response">
+              {{ formatResponseTime(reviewer.avg_response_hours) }} avg
+            </span>
           </div>
-          <div class="bar-counts">
-            <span v-if="reviewer.completed_count > 0" class="count count--completed">
-              {{ reviewer.completed_count }}
-            </span>
-            <span v-if="reviewer.assigned_count > 0" class="count count--assigned">
-              {{ reviewer.assigned_count }}
-            </span>
-            <span v-if="reviewer.overdue_count > 0" class="count count--overdue">
-              {{ reviewer.overdue_count }}
-            </span>
+
+          <div class="bar-container">
+            <div class="bar-track">
+              <div
+                class="bar-segment bar-segment--completed"
+                :style="{ width: barWidth(reviewer.completed_count) }"
+                :title="`Completed: ${reviewer.completed_count}`"
+              />
+              <div
+                class="bar-segment bar-segment--assigned"
+                :style="{ width: barWidth(reviewer.assigned_count) }"
+                :title="`Assigned: ${reviewer.assigned_count}`"
+              />
+              <div
+                class="bar-segment bar-segment--overdue"
+                :style="{ width: barWidth(reviewer.overdue_count) }"
+                :title="`Overdue: ${reviewer.overdue_count}`"
+              />
+            </div>
+            <div class="bar-counts">
+              <span v-if="reviewer.completed_count > 0" class="count count--completed">
+                {{ reviewer.completed_count }}
+              </span>
+              <span v-if="reviewer.assigned_count > 0" class="count count--assigned">
+                {{ reviewer.assigned_count }}
+              </span>
+              <span v-if="reviewer.overdue_count > 0" class="count count--overdue">
+                {{ reviewer.overdue_count }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SCard>
 
-    <div v-else-if="workload.length === 0" class="workload-empty">
-      <p>No reviewer workload data yet. Sync your repositories to populate reviewer assignments.</p>
-    </div>
+    <SEmptyState
+      v-else-if="workload.length === 0"
+      title="No data"
+      description="No reviewer workload data yet. Sync your repositories to populate reviewer assignments."
+    />
   </div>
 </template>
 
@@ -130,33 +135,6 @@ function barWidth(count: number): string {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--space-4);
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.refresh-btn {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .workload-error {
@@ -295,12 +273,5 @@ function barWidth(count: number): string {
 
 .count--overdue {
   color: var(--color-status-danger);
-}
-
-.workload-empty {
-  text-align: center;
-  padding: var(--space-6);
-  color: var(--color-text-muted);
-  font-size: 13px;
 }
 </style>

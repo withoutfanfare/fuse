@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SCard, SSpinner, SEmptyState, SBadge } from '@stuntrocket/ui'
 import type { CommitInfo } from '../types'
 import AuthorAvatar from './AuthorAvatar.vue'
 
@@ -41,9 +42,9 @@ const commitCount = computed(() => props.commits.length)
 </script>
 
 <template>
-  <div class="commit-timeline">
+  <SCard variant="content" class="commit-timeline">
     <div v-if="loading" class="timeline-loading">
-      Loading commit history...
+      <SSpinner /> Loading commit history...
     </div>
 
     <div v-else-if="error" class="timeline-error">
@@ -51,13 +52,15 @@ const commitCount = computed(() => props.commits.length)
       <span>{{ error }}</span>
     </div>
 
-    <div v-else-if="commits.length === 0" class="timeline-empty">
-      No commits found for this pull request.
-    </div>
+    <SEmptyState
+      v-else-if="commits.length === 0"
+      title="No commits"
+      description="No commits found for this pull request."
+    />
 
     <template v-else>
       <div class="timeline-header">
-        <span class="commit-count">{{ commitCount }} commit{{ commitCount === 1 ? '' : 's' }}</span>
+        <SBadge variant="count">{{ commitCount }} commit{{ commitCount === 1 ? '' : 's' }}</SBadge>
       </div>
 
       <ol class="timeline-list">
@@ -101,17 +104,15 @@ const commitCount = computed(() => props.commits.length)
         </li>
       </ol>
     </template>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
-.commit-timeline {
-  width: 100%;
-}
-
-.timeline-loading,
-.timeline-empty {
-  text-align: center;
+.timeline-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   color: var(--color-text-muted);
   font-size: 13px;
   padding: var(--space-4);
@@ -144,14 +145,6 @@ const commitCount = computed(() => props.commits.length)
 
 .timeline-header {
   margin-bottom: var(--space-3);
-}
-
-.commit-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .timeline-list {

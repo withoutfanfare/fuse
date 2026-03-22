@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { BookmarkPlus } from 'lucide-vue-next'
+import { SIconButton, SEmptyState } from '@stuntrocket/ui'
 import type { DiffFile, DiffLine } from '../types'
 import DiffFileTree from './DiffFileTree.vue'
 import { useSyntaxHighlight } from '../composables/useSyntaxHighlight'
@@ -130,21 +131,23 @@ defineExpose({ scrollToLine, scrollToFile })
 <template>
   <div class="diff-viewer" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
     <div v-if="!sidebarCollapsed" class="diff-sidebar">
-      <button class="sidebar-toggle" @click="sidebarCollapsed = true" title="Collapse file tree">
+      <SIconButton class="sidebar-toggle" @click="sidebarCollapsed = true" title="Collapse file tree">
         &laquo;
-      </button>
+      </SIconButton>
       <DiffFileTree :files="files" @select-file="scrollToFile" />
     </div>
     <div v-else class="diff-sidebar-collapsed">
-      <button class="sidebar-toggle" @click="sidebarCollapsed = false" title="Expand file tree">
+      <SIconButton class="sidebar-toggle" @click="sidebarCollapsed = false" title="Expand file tree">
         &raquo;
-      </button>
+      </SIconButton>
     </div>
 
     <div class="diff-content">
-      <div v-if="files.length === 0" class="diff-empty">
-        <p>No changes found in this diff.</p>
-      </div>
+      <SEmptyState
+        v-if="files.length === 0"
+        title="No changes"
+        description="No changes found in this diff."
+      />
 
       <div
         v-for="file in files"
@@ -158,13 +161,13 @@ defineExpose({ scrollToLine, scrollToFile })
             <span class="diff-stat-add">+{{ file.additions }}</span>
             <span class="diff-stat-del">-{{ file.deletions }}</span>
           </span>
-          <button
-            class="diff-bookmark-btn"
+          <SIconButton
+            size="sm"
             title="Bookmark this file"
             @click.stop="handleBookmarkFile(file.path)"
           >
             <BookmarkPlus :size="14" />
-          </button>
+          </SIconButton>
         </div>
 
         <div v-for="(hunk, hunkIdx) in file.hunks" :key="hunkIdx" class="diff-hunk">
@@ -234,20 +237,6 @@ defineExpose({ scrollToLine, scrollToFile })
   flex-shrink: 0;
 }
 
-.sidebar-toggle {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  padding: var(--space-1);
-  transition: color var(--transition-fast);
-}
-
-.sidebar-toggle:hover {
-  color: var(--color-text-primary);
-}
-
 .diff-sidebar .sidebar-toggle {
   position: absolute;
   top: var(--space-2);
@@ -258,13 +247,6 @@ defineExpose({ scrollToLine, scrollToFile })
 .diff-content {
   flex: 1;
   overflow: auto;
-}
-
-.diff-empty {
-  padding: var(--space-6);
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
 }
 
 .diff-file-section {
@@ -315,30 +297,6 @@ defineExpose({ scrollToLine, scrollToFile })
 
 .diff-stat-del {
   color: var(--color-status-danger);
-}
-
-.diff-bookmark-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.diff-bookmark-btn:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  background: rgba(20, 184, 166, 0.1);
-}
-
-.diff-hunk {
-  /* Each hunk block */
 }
 
 .diff-hunk-header {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { CheckCircle, GitMerge, X } from 'lucide-vue-next'
+import { SButton, SBadge } from '@stuntrocket/ui'
 import { usePullRequestsStore } from '../stores/pullRequests'
 import { useToastStore } from '../stores/toast'
 import type { BatchResult } from '../types'
@@ -77,29 +78,33 @@ function dismissResults() {
       <div class="batch-bar-inner">
         <div class="batch-info">
           <span class="batch-count">{{ selectedCount }} PR{{ selectedCount !== 1 ? 's' : '' }} selected</span>
-          <button class="btn-clear" @click="emit('clear-selection')" title="Clear selection">
+          <SButton variant="ghost" size="sm" @click="emit('clear-selection')" title="Clear selection">
             <X :size="14" />
             Clear
-          </button>
+          </SButton>
         </div>
 
         <div class="batch-actions">
-          <button
-            class="btn-batch btn-batch-approve"
+          <SButton
+            variant="primary"
+            size="sm"
             :disabled="processing"
+            :loading="processing"
             @click="handleBatchApprove"
           >
             <CheckCircle :size="16" />
-            {{ processing ? 'Processing...' : 'Approve All' }}
-          </button>
-          <button
-            class="btn-batch btn-batch-merge"
+            Approve All
+          </SButton>
+          <SButton
+            variant="secondary"
+            size="sm"
             :disabled="processing"
+            :loading="processing"
             @click="handleBatchMerge"
           >
             <GitMerge :size="16" />
-            {{ processing ? 'Processing...' : 'Merge All' }}
-          </button>
+            Merge All
+          </SButton>
         </div>
       </div>
 
@@ -107,16 +112,17 @@ function dismissResults() {
         <div v-if="showResults && results.length > 0" class="batch-results">
           <div class="results-header">
             <span class="results-title">Results</span>
-            <button class="btn-dismiss" @click="dismissResults">Dismiss</button>
+            <SButton variant="ghost" size="sm" @click="dismissResults">Dismiss</SButton>
           </div>
           <div class="results-list">
             <div
               v-for="result in results"
               :key="result.pr_id"
               class="result-item"
-              :class="{ 'result-success': result.success, 'result-failure': !result.success }"
             >
-              <span class="result-indicator">{{ result.success ? 'OK' : 'FAIL' }}</span>
+              <SBadge :variant="result.success ? 'success' : 'error'">
+                {{ result.success ? 'OK' : 'FAIL' }}
+              </SBadge>
               <span class="result-message">{{ result.message }}</span>
             </div>
           </div>
@@ -158,77 +164,9 @@ function dismissResults() {
   color: var(--color-text-primary);
 }
 
-.btn-clear {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.btn-clear:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface-hover);
-}
-
 .batch-actions {
   display: flex;
   gap: var(--space-3);
-}
-
-.btn-batch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 600;
-  font-size: 13px;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-batch:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-batch:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-batch:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-batch-approve {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--color-status-success);
-  border-color: rgba(34, 197, 94, 0.3);
-}
-
-.btn-batch-approve:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.3);
-  border-color: rgba(34, 197, 94, 0.5);
-}
-
-.btn-batch-merge {
-  background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
-  border-color: rgba(139, 92, 246, 0.3);
-}
-
-.btn-batch-merge:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.3);
-  border-color: rgba(139, 92, 246, 0.5);
 }
 
 .batch-results {
@@ -256,19 +194,6 @@ function dismissResults() {
   letter-spacing: 0.05em;
 }
 
-.btn-dismiss {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-.btn-dismiss:hover {
-  color: var(--color-text-primary);
-}
-
 .results-list {
   display: flex;
   flex-direction: column;
@@ -282,23 +207,6 @@ function dismissResults() {
   font-size: 12px;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-}
-
-.result-success {
-  color: var(--color-status-success);
-  background: rgba(34, 197, 94, 0.08);
-}
-
-.result-failure {
-  color: var(--color-status-danger);
-  background: rgba(220, 38, 38, 0.08);
-}
-
-.result-indicator {
-  font-weight: 700;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  min-width: 32px;
 }
 
 .result-message {

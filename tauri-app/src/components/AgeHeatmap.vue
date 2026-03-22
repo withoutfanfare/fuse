@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SCard } from '@stuntrocket/ui'
 import type { AgeBucket } from '../types'
 
 const props = defineProps<{
@@ -22,25 +23,27 @@ function getColour(label: string): string {
 </script>
 
 <template>
-  <div class="age-heatmap">
-    <div
-      v-for="bucket in buckets"
-      :key="bucket.label"
-      class="heatmap-row"
-    >
-      <span class="heatmap-label">{{ bucket.label }}</span>
-      <div class="heatmap-bar-track">
-        <div
-          class="heatmap-bar-fill"
-          :style="{
-            width: `${(bucket.count / maxCount) * 100}%`,
-            backgroundColor: getColour(bucket.label),
-          }"
-        />
+  <SCard variant="content">
+    <div class="age-heatmap">
+      <div
+        v-for="bucket in buckets"
+        :key="bucket.label"
+        class="heatmap-row"
+      >
+        <span class="heatmap-label">{{ bucket.label }}</span>
+        <div class="heatmap-bar-track">
+          <div
+            class="heatmap-bar-fill"
+            :style="{
+              width: `${(bucket.count / maxCount) * 100}%`,
+              backgroundColor: getColour(bucket.label),
+            }"
+          />
+        </div>
+        <span class="heatmap-count" :style="{ color: getColour(bucket.label) }">{{ bucket.count }}</span>
       </div>
-      <span class="heatmap-count" :style="{ color: getColour(bucket.label) }">{{ bucket.count }}</span>
     </div>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>

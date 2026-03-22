@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { AlertTriangle } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
+import { SButton, SCard, SSpinner } from '@stuntrocket/ui'
 import { useGrove } from '../composables/useGrove'
 import { useConfirm } from '@stuntrocket/ui'
 import { useToastStore } from '../stores/toast'
@@ -81,10 +82,10 @@ async function openInEditor() {
 </script>
 
 <template>
-  <div class="worktree-panel">
+  <SCard variant="content" class="worktree-panel">
     <div class="panel-header">
       <h3 class="panel-title">Review Worktree</h3>
-      <span v-if="loading" class="loading-indicator">Loading…</span>
+      <SSpinner v-if="loading" />
     </div>
 
     <!-- Merge protection warning -->
@@ -100,13 +101,14 @@ async function openInEditor() {
 
     <div class="worktree-actions">
       <template v-if="!branchHasWorktree">
-        <button
-          class="btn-create"
+        <SButton
+          variant="primary"
           :disabled="loading"
+          :loading="loading"
           @click="handleCreate"
         >
           Create Review Worktree
-        </button>
+        </SButton>
         <p class="action-hint">Creates worktree based on <code>origin/develop</code></p>
       </template>
       <template v-else>
@@ -121,52 +123,51 @@ async function openInEditor() {
         </div>
 
         <div class="review-actions">
-          <button
-            class="btn-review"
+          <SButton
+            variant="primary"
             :disabled="loading || reviewRequested"
             @click="handleStartReview"
           >
             {{ reviewRequested ? 'Review Requested' : 'Start Code Review' }}
-          </button>
-          <button
-            class="btn-open-editor"
+          </SButton>
+          <SButton
+            variant="secondary"
+            size="sm"
             title="Open worktree in configured editor"
             @click="openInEditor"
           >
             Open in Editor
-          </button>
-          <button
-            class="btn-copy-cmd"
+          </SButton>
+          <SButton
+            variant="ghost"
+            size="sm"
             title="Copy Claude review command to clipboard"
             @click="copyReviewCommand"
           >
             Copy Review Command
-          </button>
+          </SButton>
         </div>
 
-        <button
-          class="btn-remove"
+        <SButton
+          variant="danger"
+          size="sm"
           :disabled="loading"
           @click="handleRemove"
         >
           Remove Worktree
-        </button>
+        </SButton>
       </template>
     </div>
 
     <div v-if="!branchHasWorktree && !loading && worktrees.length === 0" class="empty-state">
       No worktrees found for {{ repoName }}
     </div>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
 .worktree-panel {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
+  /* Card variant handles outer styling */
 }
 
 .panel-header {
@@ -180,11 +181,6 @@ async function openInEditor() {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
-}
-
-.loading-indicator {
-  font-size: 12px;
-  color: var(--color-text-muted);
 }
 
 .merge-warning {
@@ -300,142 +296,6 @@ async function openInEditor() {
 .review-actions {
   display: flex;
   gap: var(--space-2);
-}
-
-.btn-review {
-  flex: 1;
-  background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
-  font-weight: 600;
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-review:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.3);
-  border-color: rgba(139, 92, 246, 0.5);
-}
-
-.btn-review:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-review:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-review:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-open-editor {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--color-status-info);
-  font-size: 12px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.btn-open-editor:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.4);
-}
-
-.btn-open-editor:active {
-  transform: scale(0.97);
-}
-
-.btn-open-editor:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-copy-cmd {
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-default);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.btn-copy-cmd:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-}
-
-.btn-copy-cmd:active {
-  transform: scale(0.97);
-}
-
-.btn-copy-cmd:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-create {
-  background: rgba(59, 130, 246, 0.2);
-  color: var(--color-status-info);
-  font-weight: 600;
-  width: 100%;
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-create:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.5);
-}
-
-.btn-create:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-create:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-remove {
-  background: rgba(220, 38, 38, 0.1);
-  color: var(--color-status-danger);
-  border: 1px solid rgba(220, 38, 38, 0.2);
-  font-weight: 500;
-  font-size: 12px;
-  width: 100%;
-  padding: var(--space-2);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-remove:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.2);
-  border-color: rgba(220, 38, 38, 0.4);
-}
-
-.btn-remove:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-remove:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
 }
 
 .empty-state {

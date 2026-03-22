@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { SEmptyState } from '@stuntrocket/ui'
 import type { AuthorStats } from '../types'
 import AuthorAvatar from './AuthorAvatar.vue'
 
@@ -83,9 +84,11 @@ function formatAvgSize(a: AuthorStats): string {
         </tr>
       </tbody>
     </table>
-    <div v-if="authors.length === 0" class="empty-state">
-      No author data available. Sync some repositories first.
-    </div>
+    <SEmptyState
+      v-if="authors.length === 0"
+      title="No author data"
+      description="No author data available. Sync some repositories first."
+    />
   </div>
 </template>
 
@@ -174,12 +177,5 @@ function formatAvgSize(a: AuthorStats): string {
   font-size: 12px;
   color: var(--color-text-secondary);
   white-space: nowrap;
-}
-
-.empty-state {
-  padding: var(--space-8);
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 14px;
 }
 </style>

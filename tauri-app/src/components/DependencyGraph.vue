@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { SButton, SCard, SEmptyState } from '@stuntrocket/ui'
 import type { DependencyNode, DependencyEdge } from '../composables/useDependencyGraph'
 import ContentLoader from './ContentLoader.vue'
 
@@ -136,21 +137,23 @@ function navigateToPr(nodeId: number) {
 </script>
 
 <template>
-  <div class="dependency-graph-panel">
+  <SCard variant="content" class="dependency-graph-panel">
     <div class="graph-header">
       <h3 class="graph-title">PR Dependency Graph</h3>
-      <button class="btn-refresh" :disabled="loading" @click="emit('refresh')">
-        {{ loading ? 'Computing...' : 'Refresh' }}
-      </button>
+      <SButton variant="secondary" size="sm" :disabled="loading" :loading="loading" @click="emit('refresh')">
+        Refresh
+      </SButton>
     </div>
 
     <div v-if="error" class="graph-error">{{ error }}</div>
 
     <ContentLoader v-if="loading" variant="cards" :count="3" />
 
-    <div v-else-if="positionedNodes.length === 0" class="graph-empty">
-      No cross-PR dependencies detected.
-    </div>
+    <SEmptyState
+      v-else-if="positionedNodes.length === 0"
+      title="No dependencies"
+      description="No cross-PR dependencies detected."
+    />
 
     <div v-else class="graph-container">
       <svg :viewBox="`0 0 ${svgWidth} ${svgHeight}`" class="graph-svg">
@@ -250,18 +253,10 @@ function navigateToPr(nodeId: number) {
         </div>
       </div>
     </div>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
-.dependency-graph-panel {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
-}
-
 .graph-header {
   display: flex;
   align-items: center;
@@ -276,40 +271,10 @@ function navigateToPr(nodeId: number) {
   margin: 0;
 }
 
-.btn-refresh {
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-refresh:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-}
-
-.btn-refresh:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .graph-error {
   color: var(--color-status-danger);
   font-size: 13px;
   padding: var(--space-3);
-}
-
-.graph-loading,
-.graph-empty {
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-6);
 }
 
 .graph-container {

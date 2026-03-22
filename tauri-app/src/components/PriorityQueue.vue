@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { SButton, SCard, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
 import type { PriorityQueueItem } from '../types'
 import AuthorAvatar from './AuthorAvatar.vue'
 import ContentLoader from './ContentLoader.vue'
@@ -40,10 +41,10 @@ function scoreColour(score: number): string {
 <template>
   <div class="priority-queue">
     <div class="queue-header">
-      <h2 class="section-title">Review Queue</h2>
-      <button class="refresh-btn" @click="emit('refresh')" :disabled="loading">
-        {{ loading ? 'Loading...' : 'Refresh' }}
-      </button>
+      <SSectionHeader title="Review Queue" />
+      <SButton variant="secondary" size="sm" @click="emit('refresh')" :disabled="loading" :loading="loading">
+        Refresh
+      </SButton>
     </div>
 
     <p v-if="error" class="queue-error">{{ error }}</p>
@@ -51,7 +52,13 @@ function scoreColour(score: number): string {
     <ContentLoader v-if="loading" variant="list" :count="3" />
 
     <!-- "Next to review" suggestion -->
-    <div v-else-if="queue.length > 0" class="next-review-card" @click="openDetail(queue[0].pr.id)">
+    <SCard
+      v-else-if="queue.length > 0"
+      variant="content"
+      hoverable
+      class="next-review-card"
+      @click="openDetail(queue[0].pr.id)"
+    >
       <div class="next-label">Next to review</div>
       <div class="next-body">
         <div class="next-title">{{ queue[0].pr.title }}</div>
@@ -75,13 +82,15 @@ function scoreColour(score: number): string {
       <div class="next-score" :style="{ color: scoreColour(queue[0].priority_score) }">
         {{ formatScore(queue[0].priority_score) }}
       </div>
-    </div>
+    </SCard>
 
     <!-- Remaining queue items -->
     <div v-if="queue.length > 1" class="queue-list">
-      <div
+      <SCard
         v-for="item in queue.slice(1, 10)"
         :key="item.pr.id"
+        variant="list"
+        hoverable
         class="queue-item"
         @click="openDetail(item.pr.id)"
       >
@@ -101,12 +110,14 @@ function scoreColour(score: number): string {
         <div class="queue-item-factors" :title="item.factors.map(f => `${f.label}: ${f.points.toFixed(1)}`).join('\n')">
           <span class="factor-count">{{ item.factors.length }} factors</span>
         </div>
-      </div>
+      </SCard>
     </div>
 
-    <div v-else-if="queue.length === 0" class="queue-empty">
-      <p>No open pull requests in the queue.</p>
-    </div>
+    <SEmptyState
+      v-else-if="queue.length === 0"
+      title="Queue empty"
+      description="No open pull requests in the queue."
+    />
   </div>
 </template>
 
@@ -122,33 +133,6 @@ function scoreColour(score: number): string {
   margin-bottom: var(--space-4);
 }
 
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.refresh-btn {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .queue-error {
   color: var(--color-status-danger);
   font-size: 13px;
@@ -159,19 +143,8 @@ function scoreColour(score: number): string {
   display: flex;
   align-items: flex-start;
   gap: var(--space-4);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-accent-muted);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4) var(--space-5);
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   margin-bottom: var(--space-4);
-}
-
-.next-review-card:hover {
-  transform: scale(1.005);
-  box-shadow: var(--shadow-panel);
 }
 
 .next-label {
@@ -259,17 +232,7 @@ function scoreColour(score: number): string {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
   cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.queue-item:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
 }
 
 .queue-item-score {
@@ -321,12 +284,5 @@ function scoreColour(score: number): string {
 
 .factor-count {
   font-style: italic;
-}
-
-.queue-empty {
-  text-align: center;
-  padding: var(--space-6);
-  color: var(--color-text-muted);
-  font-size: 13px;
 }
 </style>

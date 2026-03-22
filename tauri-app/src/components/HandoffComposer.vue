@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { SButton, SInput, STextarea, SCard, SCheckbox, SBadge, SSpinner, SEmptyState } from '@stuntrocket/ui'
 import { useHandoffNotes } from '../composables/useHandoffNotes'
 import { useToastStore } from '../stores/toast'
 
@@ -89,20 +90,22 @@ function formatDate(dateStr: string): string {
   <section class="handoff-panel">
     <button class="handoff-toggle" @click="expanded = !expanded">
       <h2 class="section-title">Review Handoffs</h2>
-      <span class="handoff-count" v-if="handoffs.length > 0">{{ handoffs.length }}</span>
+      <SBadge v-if="handoffs.length > 0" variant="warning">{{ handoffs.length }}</SBadge>
       <span class="toggle-icon" :class="{ expanded }">&#9656;</span>
     </button>
 
     <div v-if="expanded" class="handoff-content">
-      <div v-if="loading" class="handoff-loading">Loading handoff notes...</div>
+      <div v-if="loading" class="handoff-loading">
+        <SSpinner /> Loading handoff notes...
+      </div>
 
       <div v-else>
         <!-- Existing handoff notes -->
         <div v-if="handoffs.length > 0" class="handoff-list">
-          <div
+          <SCard
             v-for="note in handoffs"
             :key="note.id"
-            class="handoff-card"
+            variant="nested"
           >
             <div class="handoff-card-header">
               <span class="handoff-reviewer">{{ note.reviewer_name }}</span>
@@ -133,34 +136,38 @@ function formatDate(dateStr: string): string {
             </div>
 
             <div class="handoff-card-actions">
-              <button
-                class="btn-export"
+              <SButton
+                variant="secondary"
+                size="sm"
                 :disabled="exporting"
+                :loading="exporting"
                 @click="handleExport(note.id)"
               >
-                {{ exporting ? 'Exporting...' : 'Post to GitHub' }}
-              </button>
-              <button
-                class="btn-delete-handoff"
+                Post to GitHub
+              </SButton>
+              <SButton
+                variant="danger"
+                size="sm"
                 @click="handleDelete(note.id)"
               >
                 Delete
-              </button>
+              </SButton>
             </div>
-          </div>
+          </SCard>
         </div>
 
-        <div v-else-if="!showForm" class="handoff-empty">
-          No handoff notes yet. Create one to hand off this review.
-        </div>
+        <SEmptyState
+          v-else-if="!showForm"
+          title="No handoff notes"
+          description="No handoff notes yet. Create one to hand off this review."
+        />
 
         <!-- Create form -->
-        <div v-if="showForm" class="handoff-form">
+        <SCard v-if="showForm" variant="nested" class="handoff-form">
           <div class="form-group">
-            <label class="form-label">Your name</label>
-            <input
+            <SInput
               v-model="reviewerName"
-              class="form-input"
+              label="Your name"
               placeholder="e.g. Jane Smith"
             />
           </div>
@@ -174,11 +181,9 @@ function formatDate(dateStr: string): string {
                 class="file-check-item"
                 :class="{ checked: selectedFiles.includes(file) }"
               >
-                <input
-                  type="checkbox"
-                  :checked="selectedFiles.includes(file)"
-                  class="file-checkbox"
-                  @change="toggleFile(file)"
+                <SCheckbox
+                  :model-value="selectedFiles.includes(file)"
+                  @update:model-value="toggleFile(file)"
                 />
                 <code class="file-check-path">{{ file }}</code>
               </label>
@@ -186,42 +191,39 @@ function formatDate(dateStr: string): string {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Concerns</label>
-            <textarea
+            <STextarea
               v-model="concerns"
-              class="form-textarea"
+              label="Concerns"
               placeholder="Any concerns or issues found during review..."
-              rows="3"
             />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Remaining work</label>
-            <textarea
+            <STextarea
               v-model="remainingWork"
-              class="form-textarea"
+              label="Remaining work"
               placeholder="What still needs to be reviewed or checked..."
-              rows="3"
             />
           </div>
 
           <div class="form-actions">
-            <button class="btn-create-handoff" @click="handleCreate">
+            <SButton variant="primary" @click="handleCreate">
               Create Handoff
-            </button>
-            <button class="btn-cancel-handoff" @click="resetForm">
+            </SButton>
+            <SButton variant="secondary" @click="resetForm">
               Cancel
-            </button>
+            </SButton>
           </div>
-        </div>
+        </SCard>
 
-        <button
+        <SButton
           v-if="!showForm"
+          variant="ghost"
           class="btn-new-handoff"
           @click="showForm = true"
         >
           + New Handoff Note
-        </button>
+        </SButton>
       </div>
 
       <div v-if="error" class="handoff-error">{{ error }}</div>
@@ -258,20 +260,6 @@ function formatDate(dateStr: string): string {
   flex: 1;
 }
 
-.handoff-count {
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-  font-size: 11px;
-  font-weight: 700;
-  min-width: 20px;
-  height: 20px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--space-1);
-}
-
 .toggle-icon {
   font-size: 14px;
   color: var(--color-text-muted);
@@ -289,25 +277,18 @@ function formatDate(dateStr: string): string {
   padding-top: var(--space-4);
 }
 
-.handoff-loading,
-.handoff-empty {
+.handoff-loading {
   text-align: center;
   color: var(--color-text-muted);
   font-size: 13px;
   padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 .handoff-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.handoff-card {
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -381,101 +362,22 @@ function formatDate(dateStr: string): string {
   border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.btn-export {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  background: rgba(59, 130, 246, 0.2);
-  color: var(--color-status-info);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-export:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.3);
-}
-
-.btn-export:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-delete-handoff {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  background: rgba(220, 38, 38, 0.1);
-  color: var(--color-status-danger);
-  border: 1px solid rgba(220, 38, 38, 0.2);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-delete-handoff:hover {
-  background: rgba(220, 38, 38, 0.2);
-}
-
 /* Create form */
 .handoff-form {
   margin-top: var(--space-3);
-  padding: var(--space-4);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .form-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-muted);
-}
-
-.form-input {
-  width: 100%;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  font-family: var(--font-sans);
-  transition: border-color var(--transition-fast);
-}
-
-.form-input:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.form-textarea {
-  width: 100%;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  font-family: var(--font-sans);
-  resize: vertical;
-  min-height: 60px;
-  transition: border-color var(--transition-fast);
-}
-
-.form-textarea:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
 }
 
 .file-checklist {
@@ -504,36 +406,6 @@ function formatDate(dateStr: string): string {
   color: var(--color-accent);
 }
 
-.file-checkbox {
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-input);
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  position: relative;
-}
-
-.file-checkbox:checked {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.file-checkbox:checked::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 0px;
-  width: 5px;
-  height: 8px;
-  border: solid var(--color-text-inverse);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
 .file-check-path {
   font-size: 12px;
   font-family: var(--font-mono);
@@ -548,54 +420,9 @@ function formatDate(dateStr: string): string {
   gap: var(--space-2);
 }
 
-.btn-create-handoff {
-  font-size: 13px;
-  font-weight: 600;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-  border: 1px solid rgba(234, 179, 8, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-create-handoff:hover {
-  background: rgba(234, 179, 8, 0.3);
-}
-
-.btn-cancel-handoff {
-  font-size: 13px;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border-default);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-cancel-handoff:hover {
-  background: var(--color-surface-hover);
-}
-
 .btn-new-handoff {
   width: 100%;
   margin-top: var(--space-3);
-  padding: var(--space-2);
-  background: none;
-  border: 1px dashed var(--color-border-default);
-  border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-new-handoff:hover {
-  border-color: rgba(234, 179, 8, 0.5);
-  color: var(--color-status-warning);
-  background: rgba(234, 179, 8, 0.05);
 }
 
 .handoff-error {
