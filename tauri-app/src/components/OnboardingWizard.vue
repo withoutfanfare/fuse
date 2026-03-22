@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { SModal, SButton, SInput } from '@stuntrocket/ui'
+import { SWizard, SButton, SInput } from '@stuntrocket/ui'
+import type { SWizardStep } from '@stuntrocket/ui'
 import { useRepositoriesStore } from '../stores/repositories'
 import { usePullRequestsStore } from '../stores/pullRequests'
 import { useOnboarding } from '../composables/useOnboarding'
@@ -16,6 +17,12 @@ const adding = ref(false)
 const addError = ref<string | null>(null)
 const syncing = ref(false)
 const syncDone = ref(false)
+
+const wizardSteps: SWizardStep[] = [
+  { title: 'Welcome' },
+  { title: 'Add Repository' },
+  { title: 'Sync' },
+]
 
 async function addRepo() {
   if (!newOwner.value.trim() || !newName.value.trim()) return
@@ -39,163 +46,132 @@ async function runSync() {
   syncing.value = false
   syncDone.value = true
 }
-
-function next() {
-  if (currentStep.value < 2) {
-    currentStep.value++
-  }
-}
-
-function back() {
-  if (currentStep.value > 0) {
-    currentStep.value--
-  }
-}
 </script>
 
 <template>
-  <SModal
+  <SWizard
+    :steps="wizardSteps"
+    :current-step="currentStep"
     :open="true"
-    max-width="520px"
+    :closable="true"
+    title="PR Review Companion"
+    @update:current-step="currentStep = $event"
     @close="dismissOnboarding"
+    @complete="completeOnboarding"
   >
-    <template #header>
-      <!-- Step indicators -->
-      <div class="step-dots">
-        <span
-          v-for="n in 3"
-          :key="n"
-          class="dot"
-          :class="{ active: currentStep === n - 1, completed: currentStep > n - 1 }"
-        />
+    <!-- Step 0: Welcome -->
+    <template #step-0>
+      <div class="step-content">
+        <h2 class="step-title">Welcome to PR Review Companion</h2>
+        <p class="step-description">
+          Track, review, and manage pull requests across all your GitHub repositories
+          from a single dashboard. Let's get you set up in a few quick steps.
+        </p>
       </div>
     </template>
 
-    <!-- Step 0: Welcome -->
-    <div v-if="currentStep === 0" class="step-content">
-      <h2 class="step-title">Welcome to PR Review Companion</h2>
-      <p class="step-description">
-        Track, review, and manage pull requests across all your GitHub repositories
-        from a single dashboard. Let's get you set up in a few quick steps.
-      </p>
-      <div class="step-actions">
-        <SButton variant="secondary" @click="dismissOnboarding">Skip</SButton>
-        <SButton variant="primary" @click="next">Get Started</SButton>
-      </div>
-    </div>
-
     <!-- Step 1: Add Repository -->
-    <div v-else-if="currentStep === 1" class="step-content">
-      <h2 class="step-title">Add a Repository</h2>
-      <p class="step-description">
-        Enter a GitHub repository you'd like to track. You can always add more later.
-      </p>
+    <template #step-1>
+      <div class="step-content">
+        <h2 class="step-title">Add a Repository</h2>
+        <p class="step-description">
+          Enter a GitHub repository you'd like to track. You can always add more later.
+        </p>
 
-      <form class="onboarding-form" @submit.prevent="addRepo">
-        <div class="form-row">
-          <SInput
-            v-model="newOwner"
-            placeholder="Owner (e.g. facebook)"
-          />
-          <span class="slash">/</span>
-          <SInput
-            v-model="newName"
-            placeholder="Repository (e.g. react)"
-          />
+        <form class="onboarding-form" @submit.prevent="addRepo">
+          <div class="form-row">
+            <SInput
+              v-model="newOwner"
+              placeholder="Owner (e.g. facebook)"
+            />
+            <span class="slash">/</span>
+            <SInput
+              v-model="newName"
+              placeholder="Repository (e.g. react)"
+            />
+          </div>
+          <div class="form-row">
+            <SInput
+              v-model="newBranch"
+              placeholder="Default branch"
+              class="input-branch"
+            />
+            <SButton variant="primary" :disabled="adding" @click="addRepo">
+              {{ adding ? 'Adding...' : 'Add Repository' }}
+            </SButton>
+          </div>
+        </form>
+        <div v-if="addError" class="add-error">{{ addError }}</div>
+
+        <div v-if="repoStore.repos.length > 0" class="added-repos">
+          <span class="added-label">Added:</span>
+          <span v-for="repo in repoStore.repos" :key="repo.id" class="added-chip">
+            {{ repo.owner }}/{{ repo.name }}
+          </span>
         </div>
-        <div class="form-row">
-          <SInput
-            v-model="newBranch"
-            placeholder="Default branch"
-            class="input-branch"
-          />
-          <SButton variant="primary" :disabled="adding" @click="addRepo">
-            {{ adding ? 'Adding...' : 'Add Repository' }}
-          </SButton>
-        </div>
-      </form>
-      <div v-if="addError" class="add-error">{{ addError }}</div>
-
-      <div v-if="repoStore.repos.length > 0" class="added-repos">
-        <span class="added-label">Added:</span>
-        <span v-for="repo in repoStore.repos" :key="repo.id" class="added-chip">
-          {{ repo.owner }}/{{ repo.name }}
-        </span>
       </div>
-
-      <div class="step-actions">
-        <SButton variant="secondary" @click="back">Back</SButton>
-        <SButton variant="primary" :disabled="repoStore.repos.length === 0" @click="next">
-          Continue
-        </SButton>
-      </div>
-    </div>
+    </template>
 
     <!-- Step 2: Initial Sync -->
-    <div v-else-if="currentStep === 2" class="step-content">
-      <h2 class="step-title">Sync Pull Requests</h2>
-      <p class="step-description">
-        Fetch open pull requests from your repositories. This may take a moment.
-      </p>
+    <template #step-2>
+      <div class="step-content">
+        <h2 class="step-title">Sync Pull Requests</h2>
+        <p class="step-description">
+          Fetch open pull requests from your repositories. This may take a moment.
+        </p>
 
-      <div v-if="!syncDone" class="sync-area">
-        <SButton
-          variant="primary"
-          size="lg"
-          :disabled="syncing"
-          :loading="syncing"
-          @click="runSync"
-        >
-          {{ syncing ? 'Syncing...' : 'Sync Now' }}
-        </SButton>
-        <div v-if="syncing" class="sync-progress">
-          <span>Fetching pull requests...</span>
+        <div v-if="!syncDone" class="sync-area">
+          <SButton
+            variant="primary"
+            size="lg"
+            :disabled="syncing"
+            :loading="syncing"
+            @click="runSync"
+          >
+            {{ syncing ? 'Syncing...' : 'Sync Now' }}
+          </SButton>
+          <div v-if="syncing" class="sync-progress">
+            <span>Fetching pull requests...</span>
+          </div>
+        </div>
+
+        <div v-else class="sync-complete">
+          <p class="sync-result">
+            Found {{ prStore.prs.length }} pull request{{ prStore.prs.length === 1 ? '' : 's' }}.
+            You're all set!
+          </p>
         </div>
       </div>
+    </template>
 
-      <div v-else class="sync-complete">
-        <p class="sync-result">
-          Found {{ prStore.prs.length }} pull request{{ prStore.prs.length === 1 ? '' : 's' }}.
-          You're all set!
-        </p>
-      </div>
+    <!-- Custom footer to preserve existing button labels and behaviour -->
+    <template #footer="{ goBack, goNext }">
+      <!-- Step 0: Welcome -->
+      <template v-if="currentStep === 0">
+        <SButton variant="secondary" @click="dismissOnboarding">Skip</SButton>
+        <SButton variant="primary" @click="goNext">Get Started</SButton>
+      </template>
 
-      <div class="step-actions">
-        <SButton variant="secondary" @click="back">Back</SButton>
+      <!-- Step 1: Add Repository -->
+      <template v-else-if="currentStep === 1">
+        <SButton variant="secondary" @click="goBack">Back</SButton>
+        <SButton variant="primary" :disabled="repoStore.repos.length === 0" @click="goNext">
+          Continue
+        </SButton>
+      </template>
+
+      <!-- Step 2: Sync -->
+      <template v-else-if="currentStep === 2">
+        <SButton variant="secondary" @click="goBack">Back</SButton>
         <SButton variant="primary" @click="completeOnboarding">
           {{ syncDone ? 'Done' : 'Skip & Finish' }}
         </SButton>
-      </div>
-    </div>
-  </SModal>
+      </template>
+    </template>
+  </SWizard>
 </template>
 
 <style scoped>
-.step-dots {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
-  width: 100%;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--color-border-default);
-  transition: all var(--transition-fast);
-}
-
-.dot.active {
-  background: var(--color-accent);
-  width: 24px;
-}
-
-.dot.completed {
-  background: var(--color-accent);
-}
-
 .step-content {
   display: flex;
   flex-direction: column;
@@ -266,13 +242,6 @@ function back() {
   color: var(--color-accent);
   border-radius: var(--radius-full);
   font-weight: 500;
-}
-
-.step-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
 }
 
 .sync-area {

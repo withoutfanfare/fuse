@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { SCard, SSpinner, SEmptyState, SBadge } from '@stuntrocket/ui'
+import { SCard, SSpinner, SEmptyState, SBadge, STimeline, STimelineItem } from '@stuntrocket/ui'
 import type { CommitInfo } from '../types'
 import AuthorAvatar from './AuthorAvatar.vue'
 
@@ -63,46 +63,35 @@ const commitCount = computed(() => props.commits.length)
         <SBadge variant="count">{{ commitCount }} commit{{ commitCount === 1 ? '' : 's' }}</SBadge>
       </div>
 
-      <ol class="timeline-list">
-        <li
-          v-for="(commit, index) in commits"
+      <STimeline>
+        <STimelineItem
+          v-for="commit in commits"
           :key="commit.oid"
-          class="timeline-entry"
-          :class="{ 'timeline-entry--last': index === commits.length - 1 }"
+          variant="accent"
+          :timestamp="formatDate(commit.committedDate)"
         >
-          <div class="timeline-connector">
-            <div class="timeline-dot" />
-            <div v-if="index < commits.length - 1" class="timeline-line" />
-          </div>
-
-          <div class="timeline-content">
-            <div class="commit-header">
-              <div class="commit-author-row">
-                <AuthorAvatar
-                  v-if="commit.authors.length > 0 && commit.authors[0].login"
-                  :username="commit.authors[0].login ?? ''"
-                  :size="22"
-                />
-                <span
-                  v-for="(author, aIdx) in commit.authors"
-                  :key="aIdx"
-                  class="commit-author"
-                >
-                  {{ authorDisplayName(author) }}<span v-if="aIdx < commit.authors.length - 1" class="author-separator">,&nbsp;</span>
-                </span>
-              </div>
-              <code class="commit-hash" :title="commit.oid">{{ shortHash(commit.oid) }}</code>
+          <div class="commit-header">
+            <div class="commit-author-row">
+              <AuthorAvatar
+                v-if="commit.authors.length > 0 && commit.authors[0].login"
+                :username="commit.authors[0].login ?? ''"
+                :size="22"
+              />
+              <span
+                v-for="(author, aIdx) in commit.authors"
+                :key="aIdx"
+                class="commit-author"
+              >
+                {{ authorDisplayName(author) }}<span v-if="aIdx < commit.authors.length - 1" class="author-separator">,&nbsp;</span>
+              </span>
             </div>
-
-            <p class="commit-message">{{ commit.messageHeadline }}</p>
-            <p v-if="commit.messageBody" class="commit-body">{{ commit.messageBody }}</p>
-
-            <time class="commit-date" :datetime="commit.committedDate">
-              {{ formatDate(commit.committedDate) }}
-            </time>
+            <code class="commit-hash" :title="commit.oid">{{ shortHash(commit.oid) }}</code>
           </div>
-        </li>
-      </ol>
+
+          <p class="commit-message">{{ commit.messageHeadline }}</p>
+          <p v-if="commit.messageBody" class="commit-body">{{ commit.messageBody }}</p>
+        </STimelineItem>
+      </STimeline>
     </template>
   </SCard>
 </template>
@@ -145,60 +134,6 @@ const commitCount = computed(() => props.commits.length)
 
 .timeline-header {
   margin-bottom: var(--space-3);
-}
-
-.timeline-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.timeline-entry {
-  display: flex;
-  gap: var(--space-3);
-  position: relative;
-}
-
-.timeline-connector {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-  width: 16px;
-  padding-top: 4px;
-}
-
-.timeline-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  background: var(--color-accent);
-  border: 2px solid rgba(20, 184, 166, 0.3);
-  flex-shrink: 0;
-  z-index: 1;
-}
-
-.timeline-line {
-  width: 2px;
-  flex: 1;
-  background: linear-gradient(
-    to bottom,
-    rgba(20, 184, 166, 0.3),
-    rgba(20, 184, 166, 0.08)
-  );
-  margin-top: var(--space-1);
-}
-
-.timeline-content {
-  flex: 1;
-  min-width: 0;
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.timeline-entry--last .timeline-content {
-  border-bottom: none;
-  padding-bottom: 0;
 }
 
 .commit-header {
@@ -257,11 +192,5 @@ const commitCount = computed(() => props.commits.length)
   margin: 0 0 var(--space-1) 0;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.commit-date {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  font-family: var(--font-mono);
 }
 </style>

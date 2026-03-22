@@ -12,6 +12,7 @@ import BatchActionBar from '../components/BatchActionBar.vue'
 import GroupFilter from '../components/GroupFilter.vue'
 import FilterPresetsBar from '../components/FilterPresetsBar.vue'
 import OfflineBanner from '../components/OfflineBanner.vue'
+import { SSearchInput, SSelect } from '@stuntrocket/ui'
 import { useOfflineMode } from '../composables/useOfflineMode'
 
 const router = useRouter()
@@ -20,7 +21,25 @@ const repoStore = useRepositoriesStore()
 const filters = useFiltersStore()
 const groupsStore = useGroupsStore()
 const filterGroupId = ref<number | null>(null)
-const { isOnline, timeSinceSync, recordSync } = useOfflineMode()
+const { isOnline, timeSinceSync } = useOfflineMode()
+
+/**
+ * SSelect works with string modelValue, so bridge between
+ * the numeric repo ID and the string value used by SSelect.
+ */
+const repoSelectValue = computed({
+  get() {
+    return filters.filterRepoId != null ? String(filters.filterRepoId) : ''
+  },
+  set(val: string) {
+    filters.filterRepoId = val ? Number(val) : null
+  },
+})
+
+const repoSelectOptions = computed(() => [
+  { value: '', label: 'All Repositories' },
+  ...repoStore.repos.map(r => ({ value: String(r.id), label: `${r.owner}/${r.name}` })),
+])
 
 onMounted(async () => {
   if (repoStore.repos.length === 0) await repoStore.fetchAll()
@@ -96,10 +115,6 @@ async function handleBatchComplete() {
   clearSelection()
 }
 
-function clearSearch() {
-  filters.searchQuery = ''
-}
-
 /** Sort event handlers — propagate to the filters store for persistence */
 function onSortByChange(key: SortKey) {
   filters.sortBy = key
@@ -158,12 +173,11 @@ onUnmounted(() => {
     <div class="filters-bar">
       <div class="filter-group">
         <label class="filter-label">Repository</label>
-        <select v-model="filters.filterRepoId" class="filter-select">
-          <option :value="null">All Repositories</option>
-          <option v-for="repo in repoStore.repos" :key="repo.id" :value="repo.id">
-            {{ repo.owner }}/{{ repo.name }}
+        <SSelect v-model="repoSelectValue" size="sm">
+          <option v-for="opt in repoSelectOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
           </option>
-        </select>
+        </SSelect>
       </div>
       <GroupFilter v-model="filterGroupId" />
       <div class="filter-group">
@@ -182,24 +196,14 @@ onUnmounted(() => {
       </div>
       <div class="filter-group search-group">
         <label class="filter-label">Search</label>
-        <div class="search-wrap">
-          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            v-model="filters.searchQuery"
-            placeholder="Search PRs..."
-            class="input-field search-input"
-          />
-          <button
-            v-if="filters.searchQuery"
-            class="search-clear"
-            @click="clearSearch"
-            title="Clear search"
-          >&times;</button>
-        </div>
+        <SSearchInput
+          :model-value="filters.searchQuery"
+          placeholder="Search PRs..."
+          clearable
+          size="sm"
+          class="search-input"
+          @update:model-value="filters.searchQuery = $event"
+        />
       </div>
     </div>
 
@@ -263,22 +267,6 @@ onUnmounted(() => {
   letter-spacing: 0.05em;
 }
 
-.filter-select {
-  min-width: 200px;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  transition: border-color var(--transition-fast);
-}
-
-.filter-select:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
 
 .filter-buttons {
   display: flex;
@@ -337,8 +325,6 @@ onUnmounted(() => {
 
 .search-input {
   max-width: 240px;
-  padding-left: 30px;
-  padding-right: 28px;
 }
 
 .search-clear {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useReviewDigest } from '../composables/useReviewDigest'
+import { SCard, SEmptyState, SSectionHeader } from '@stuntrocket/ui'
 import ContentLoader from '../components/ContentLoader.vue'
 
 const { digest, loading, error, fetchDigest } = useReviewDigest()
@@ -63,7 +64,7 @@ const periodLabel = computed(() => {
 <template>
   <div class="digest-view">
     <div class="digest-header">
-      <h1 class="digest-title">Review Digest</h1>
+      <SSectionHeader title="Review Digest" />
       <div class="period-selector">
         <button
           v-for="option in periodOptions"
@@ -85,7 +86,7 @@ const periodLabel = computed(() => {
 
     <div v-else-if="digest" class="digest-grid">
       <!-- Reviewed -->
-      <div class="digest-card">
+      <SCard variant="content" class="digest-card">
         <div class="card-header">
           <span class="card-label">Reviewed</span>
           <span
@@ -100,10 +101,10 @@ const periodLabel = computed(() => {
         <span v-if="digest.previous" class="card-previous">
           prev: {{ digest.previous.reviewed_count }}
         </span>
-      </div>
+      </SCard>
 
       <!-- Merged -->
-      <div class="digest-card">
+      <SCard variant="content" class="digest-card">
         <div class="card-header">
           <span class="card-label">Merged</span>
           <span
@@ -118,10 +119,10 @@ const periodLabel = computed(() => {
         <span v-if="digest.previous" class="card-previous">
           prev: {{ digest.previous.merged_count }}
         </span>
-      </div>
+      </SCard>
 
       <!-- Pending -->
-      <div class="digest-card">
+      <SCard variant="content" class="digest-card">
         <div class="card-header">
           <span class="card-label">Pending</span>
           <span
@@ -136,10 +137,10 @@ const periodLabel = computed(() => {
         <span v-if="digest.previous" class="card-previous">
           prev: {{ digest.previous.pending_count }}
         </span>
-      </div>
+      </SCard>
 
       <!-- Avg Review Time -->
-      <div class="digest-card">
+      <SCard variant="content" class="digest-card">
         <div class="card-header">
           <span class="card-label">Avg Review Time</span>
           <span
@@ -154,10 +155,10 @@ const periodLabel = computed(() => {
         <span v-if="digest.previous" class="card-previous">
           prev: {{ formatDuration(digest.previous.avg_review_seconds) }}
         </span>
-      </div>
+      </SCard>
 
       <!-- Stale -->
-      <div class="digest-card">
+      <SCard variant="content" class="digest-card">
         <div class="card-header">
           <span class="card-label">Stale PRs</span>
           <span
@@ -172,27 +173,28 @@ const periodLabel = computed(() => {
         <span v-if="digest.previous" class="card-previous">
           prev: {{ digest.previous.stale_count }}
         </span>
-      </div>
+      </SCard>
 
       <!-- Total Open -->
-      <div class="digest-card">
+      <SCard variant="content" class="digest-card">
         <div class="card-header">
           <span class="card-label">Total Open</span>
         </div>
         <span class="card-value">{{ digest.total_open }}</span>
-      </div>
+      </SCard>
     </div>
 
-    <div v-else class="digest-empty">
-      No data available. Sync your repositories first.
-    </div>
+    <SEmptyState
+      v-else
+      title="No data available"
+      description="Sync your repositories first."
+    />
   </div>
 </template>
 
 <style scoped>
 .digest-view {
-  max-width: 960px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .digest-header {
@@ -202,11 +204,6 @@ const periodLabel = computed(() => {
   margin-bottom: var(--space-2);
 }
 
-.digest-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
 
 .period-selector {
   display: flex;
@@ -246,13 +243,6 @@ const periodLabel = computed(() => {
   margin-bottom: var(--space-6);
 }
 
-.digest-loading,
-.digest-empty {
-  text-align: center;
-  color: var(--color-text-muted);
-  padding: var(--space-12);
-  font-size: 14px;
-}
 
 .digest-error {
   text-align: center;
@@ -268,11 +258,6 @@ const periodLabel = computed(() => {
 }
 
 .digest-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

@@ -21,7 +21,7 @@ import { useDeploymentStatus } from '../composables/useDeploymentStatus'
 import { useCache } from '../composables/useCache'
 import { useFocusMode } from '../composables/useFocusMode'
 import type { PullRequest, ReviewStatus, ReviewRule, CiCheck, PrCommentsResponse } from '../types'
-import { SResizableSplit } from '@stuntrocket/ui'
+import { SResizableSplit, STag } from '@stuntrocket/ui'
 import RiskGauge from '../components/RiskGauge.vue'
 import ReviewStatusComponent from '../components/ReviewStatus.vue'
 import AuthorAvatar from '../components/AuthorAvatar.vue'
@@ -463,7 +463,7 @@ function formatDate(dateStr: string): string {
     </Transition>
 
     <!-- Tabbed layout (Improvement 1) — tabs sit above the split, sidebar stays fixed -->
-    <SSegmentedControl v-model="activeTab" :options="detailTabs" />
+    <SSegmentedControl v-model="activeTab" :options="detailTabs" class="detail-tabs" />
 
     <!-- Code tab uses full width — no sidebar split -->
     <div v-if="activeTab === 'code'" class="detail-main detail-main--full">
@@ -539,9 +539,9 @@ function formatDate(dateStr: string): string {
         <section v-if="pr.labels.length > 0" class="detail-section">
           <h2 class="section-title">Labels</h2>
           <div class="labels">
-            <span v-for="label in pr.labels" :key="label" class="label-badge">
+            <STag v-for="label in pr.labels" :key="label">
               {{ label }}
-            </span>
+            </STag>
           </div>
         </section>
 
@@ -716,13 +716,9 @@ function formatDate(dateStr: string): string {
                 {{ issue.title }}
               </a>
               <div v-if="issue.labels.length > 0" class="linked-issue-labels">
-                <span
-                  v-for="label in issue.labels"
-                  :key="label"
-                  class="linked-issue-label"
-                >
+                <STag v-for="label in issue.labels" :key="label">
                   {{ label }}
-                </span>
+                </STag>
               </div>
               <div v-if="issue.assignees.length > 0" class="linked-issue-assignees">
                 <span class="assignee-label">Assignees:</span>
@@ -865,7 +861,7 @@ function formatDate(dateStr: string): string {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
 .pr-title-row {
@@ -1085,21 +1081,21 @@ function formatDate(dateStr: string): string {
 }
 
 .detail-section {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-3);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: var(--space-5);
+  padding: var(--space-4);
 }
 
 .section-title {
-  font-size: var(--text-subheading-size);
-  font-weight: var(--text-subheading-weight);
-  letter-spacing: var(--text-subheading-tracking);
-  line-height: var(--text-subheading-leading);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
 }
 
 .change-stats {
@@ -1114,9 +1110,10 @@ function formatDate(dateStr: string): string {
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   font-family: var(--font-mono);
+  line-height: 1;
 }
 
 .stat-label {
@@ -1150,19 +1147,10 @@ function formatDate(dateStr: string): string {
   flex-wrap: wrap;
 }
 
-.label-badge {
-  background: rgba(20, 184, 166, 0.15);
-  color: var(--color-accent);
-  font-size: 12px;
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-full);
-  font-weight: 500;
-}
 
 .timeline {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
 }
 
 .timeline-item {
@@ -1189,7 +1177,7 @@ function formatDate(dateStr: string): string {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: var(--space-5);
+  padding: var(--space-4);
   background: none;
   border: none;
   cursor: pointer;
@@ -1254,10 +1242,33 @@ function formatDate(dateStr: string): string {
 }
 
 
+.detail-tabs {
+  margin-bottom: var(--space-4);
+}
+
+.detail-main {
+  display: flex;
+  flex-direction: column;
+}
+
 .detail-main--full {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+.detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
+}
+
+/* Remove individual panel top margins — sidebar gap handles spacing */
+.detail-sidebar > :first-child {
+  margin-top: 0;
 }
 
 .github-actions {
@@ -1397,7 +1408,6 @@ function formatDate(dateStr: string): string {
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  margin-top: var(--space-4);
   overflow: hidden;
 }
 
@@ -1543,7 +1553,6 @@ function formatDate(dateStr: string): string {
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  margin-top: var(--space-4);
   padding: var(--space-4) var(--space-5);
 }
 
@@ -1626,14 +1635,6 @@ function formatDate(dateStr: string): string {
   gap: var(--space-1);
 }
 
-.linked-issue-label {
-  background: rgba(20, 184, 166, 0.15);
-  color: var(--color-accent);
-  font-size: 11px;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-  font-weight: 500;
-}
 
 .linked-issue-assignees {
   display: flex;

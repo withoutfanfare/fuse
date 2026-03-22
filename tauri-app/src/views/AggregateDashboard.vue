@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
-import { usePullRequestsStore } from '../stores/pullRequests'
 import StatsCard from '../components/StatsCard.vue'
 import SkeletonStatsCard from '../components/skeletons/SkeletonStatsCard.vue'
 import ContentLoader from '../components/ContentLoader.vue'
-import type { AggregateDashboard, TopRiskPr, RepoSummary } from '../types'
+import { SSectionHeader, SEmptyState, SCard } from '@stuntrocket/ui'
+import type { AggregateDashboard } from '../types'
 
 const router = useRouter()
-const prStore = usePullRequestsStore()
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -95,16 +94,18 @@ function riskBadgeClass(score: number): string {
         <StatsCard
           :value="dashboard.stale_count"
           label="Stale (>3d)"
-          variant="muted"
+          variant="neutral"
         />
       </section>
 
       <!-- Top risk PRs -->
       <section class="section">
-        <h2 class="section-title">Highest Risk PRs</h2>
-        <div v-if="dashboard.top_risk_prs.length === 0" class="section-empty">
-          No open pull requests across any repository.
-        </div>
+        <SSectionHeader title="Highest Risk PRs" />
+        <SEmptyState
+          v-if="dashboard.top_risk_prs.length === 0"
+          title="No pull requests"
+          description="No open pull requests across any repository."
+        />
         <div v-else class="risk-table">
           <div
             v-for="pr in dashboard.top_risk_prs"
@@ -128,14 +129,18 @@ function riskBadgeClass(score: number): string {
 
       <!-- Per-repository summary -->
       <section class="section">
-        <h2 class="section-title">Repositories</h2>
-        <div v-if="dashboard.repo_summaries.length === 0" class="section-empty">
-          No repositories added yet.
-        </div>
+        <SSectionHeader title="Repositories" />
+        <SEmptyState
+          v-if="dashboard.repo_summaries.length === 0"
+          title="No repositories"
+          description="No repositories added yet."
+        />
         <div v-else class="repo-grid">
-          <div
+          <SCard
             v-for="repo in dashboard.repo_summaries"
             :key="repo.repo_id"
+            variant="content"
+            hoverable
             class="repo-card"
             @click="navigateToRepo(repo.repo_id)"
           >
@@ -151,7 +156,7 @@ function riskBadgeClass(score: number): string {
                 Synced: {{ formatSyncTime(repo.last_sync_at) }}
               </span>
             </div>
-          </div>
+          </SCard>
         </div>
       </section>
     </template>
@@ -188,24 +193,6 @@ function riskBadgeClass(score: number): string {
   margin-bottom: var(--space-5);
 }
 
-.section-title {
-  font-size: var(--text-heading-size);
-  font-weight: var(--text-heading-weight);
-  letter-spacing: var(--text-heading-tracking);
-  line-height: var(--text-heading-leading);
-  margin-bottom: var(--space-3);
-  color: var(--color-text-primary);
-}
-
-.section-empty {
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-6);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-}
 
 .error-banner {
   background: rgba(220, 38, 38, 0.1);
@@ -309,18 +296,7 @@ function riskBadgeClass(score: number): string {
 }
 
 .repo-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
   cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.repo-card:hover {
-  border-color: var(--color-border-hover);
-  background: var(--color-surface-hover);
 }
 
 .repo-card-header {

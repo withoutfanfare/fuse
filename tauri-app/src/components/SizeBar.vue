@@ -42,7 +42,7 @@ const barWidth = computed(() => {
     :title="`+${additions} / -${deletions}`"
   >
     <SProgressBar
-      :value="additionRatio"
+      :value="1"
       variant="success"
       size="sm"
       class="size-bar-additions"
@@ -50,7 +50,7 @@ const barWidth = computed(() => {
     />
     <SProgressBar
       :value="1"
-      variant="error"
+      variant="danger"
       size="sm"
       class="size-bar-deletions"
       :style="{ width: `${deletionRatio * 100}%` }"

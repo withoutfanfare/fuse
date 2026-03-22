@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { BookmarkPlus } from 'lucide-vue-next'
-import { SIconButton, SEmptyState } from '@stuntrocket/ui'
+import { SIconButton, SEmptyState, useContextMenu } from '@stuntrocket/ui'
 import type { DiffFile, DiffLine } from '../types'
 import DiffFileTree from './DiffFileTree.vue'
 import { useSyntaxHighlight } from '../composables/useSyntaxHighlight'
@@ -49,14 +49,10 @@ const emit = defineEmits<{
 
 const sidebarCollapsed = ref(false)
 
-/** Context menu state for right-click "Bookmark this line" */
-const contextMenu = ref<{ visible: boolean; x: number; y: number; filePath: string; lineNumber: number }>({
-  visible: false,
-  x: 0,
-  y: 0,
-  filePath: '',
-  lineNumber: 0,
-})
+/** Context menu — powered by library composable */
+const { visible: ctxVisible, position: ctxPosition, items: ctxItems, open: ctxOpen, close: ctxClose } = useContextMenu()
+/** Tracks which file/line the context menu was opened on */
+const ctxTarget = ref<{ filePath: string; lineNumber: number }>({ filePath: '', lineNumber: 0 })
 
 function scrollToFile(path: string) {
   nextTick(() => {
@@ -103,26 +99,15 @@ function handleLineContextMenu(event: MouseEvent, filePath: string, line: DiffLi
   const lineNum = line.newLineNumber ?? line.oldLineNumber
   if (lineNum == null) return
 
-  event.preventDefault()
-  contextMenu.value = {
-    visible: true,
-    x: event.clientX,
-    y: event.clientY,
-    filePath,
-    lineNumber: lineNum,
-  }
-
-  // Close on next click anywhere
-  const close = () => {
-    contextMenu.value.visible = false
-    document.removeEventListener('click', close)
-  }
-  setTimeout(() => document.addEventListener('click', close), 0)
-}
-
-function handleContextMenuBookmark() {
-  emit('bookmark-file', contextMenu.value.filePath, contextMenu.value.lineNumber, contextMenu.value.lineNumber)
-  contextMenu.value.visible = false
+  ctxTarget.value = { filePath, lineNumber: lineNum }
+  ctxOpen(event, [
+    {
+      label: 'Bookmark this line',
+      action: () => {
+        emit('bookmark-file', ctxTarget.value.filePath, ctxTarget.value.lineNumber, ctxTarget.value.lineNumber)
+      },
+    },
+  ])
 }
 
 defineExpose({ scrollToLine, scrollToFile })
@@ -194,13 +179,18 @@ defineExpose({ scrollToLine, scrollToFile })
     <!-- Context menu for right-click bookmark -->
     <Teleport to="body">
       <div
-        v-if="contextMenu.visible"
+        v-if="ctxVisible"
         class="diff-context-menu"
-        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+        :style="{ left: ctxPosition.x + 'px', top: ctxPosition.y + 'px' }"
       >
-        <button class="diff-context-menu-item" @click="handleContextMenuBookmark">
+        <button
+          v-for="(item, idx) in ctxItems"
+          :key="idx"
+          class="diff-context-menu-item"
+          @click="item.action(); ctxClose()"
+        >
           <BookmarkPlus :size="14" />
-          Bookmark this line
+          {{ item.label }}
         </button>
       </div>
     </Teleport>

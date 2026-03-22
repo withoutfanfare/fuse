@@ -7,6 +7,7 @@ use super::CommandError;
 
 /// A single review time entry for a PR.
 #[derive(Debug, Clone, Serialize)]
+#[allow(dead_code)]
 pub struct ReviewTimeEntry {
     pub pr_id: i64,
     pub started_at: String,
@@ -44,22 +45,34 @@ pub fn log_review_time(
     state: State<'_, DbState>,
 ) -> Result<(), CommandError> {
     let db = state.writer.lock().unwrap();
-    db.execute(
-        "INSERT INTO review_time_log (pr_id, duration_seconds) VALUES (?1, ?2)",
-        rusqlite::params![pr_id, duration_seconds],
-    )?;
-    // Also update the pr_reviews aggregate
-    db.execute(
-        r#"INSERT INTO pr_reviews (pr_id, status, updated_at)
-           VALUES (?1, 'pending', datetime('now'))
-           ON CONFLICT(pr_id) DO NOTHING"#,
-        rusqlite::params![pr_id],
-    )?;
-    db.execute(
-        "UPDATE pr_reviews SET review_duration_seconds = COALESCE(review_duration_seconds, 0) + ?1 WHERE pr_id = ?2",
-        rusqlite::params![duration_seconds, pr_id],
-    )?;
-    Ok(())
+    db.execute_batch("BEGIN")?;
+    let result = (|| -> Result<(), CommandError> {
+        db.execute(
+            "INSERT INTO review_time_log (pr_id, duration_seconds) VALUES (?1, ?2)",
+            rusqlite::params![pr_id, duration_seconds],
+        )?;
+        db.execute(
+            r#"INSERT INTO pr_reviews (pr_id, status, updated_at)
+               VALUES (?1, 'pending', datetime('now'))
+               ON CONFLICT(pr_id) DO NOTHING"#,
+            rusqlite::params![pr_id],
+        )?;
+        db.execute(
+            "UPDATE pr_reviews SET review_duration_seconds = COALESCE(review_duration_seconds, 0) + ?1 WHERE pr_id = ?2",
+            rusqlite::params![duration_seconds, pr_id],
+        )?;
+        Ok(())
+    })();
+    match result {
+        Ok(()) => {
+            if let Err(e) = db.execute_batch("COMMIT") {
+                let _ = db.execute_batch("ROLLBACK");
+                return Err(e.into());
+            }
+            Ok(())
+        }
+        Err(e) => { let _ = db.execute_batch("ROLLBACK"); Err(e) }
+    }
 }
 
 #[tauri::command]
@@ -88,8 +101,8 @@ pub fn get_review_velocity_stats(
         let mut stmt = db.prepare(
             r#"SELECT
                 CASE
-                    WHEN (p.changed_files + (p.additions + p.deletions) / 200) >= 7 THEN 'high'
-                    WHEN (p.changed_files + (p.additions + p.deletions) / 200) >= 4 THEN 'medium'
+                    WHEN (p.changed_files + CAST(p.additions + p.deletions AS REAL) / 200.0) >= 7 THEN 'high'
+                    WHEN (p.changed_files + CAST(p.additions + p.deletions AS REAL) / 200.0) >= 4 THEN 'medium'
                     ELSE 'low'
                 END as tier,
                 AVG(r.review_duration_seconds) as avg_secs,
@@ -117,13 +130,11 @@ pub fn get_review_velocity_stats(
     {
         let mut stmt = db.prepare(
             r#"SELECT
-                date(r.reviewed_at, 'weekday 0', '-6 days') as week_start,
-                COALESCE(SUM(r.review_duration_seconds), 0) as total_secs,
+                date(l.started_at, '-' || ((strftime('%w', l.started_at) + 6) % 7) || ' days') as week_start,
+                COALESCE(SUM(l.duration_seconds), 0) as total_secs,
                 COUNT(*) as cnt
-            FROM pr_reviews r
-            WHERE r.reviewed_at IS NOT NULL
-              AND r.review_duration_seconds > 0
-              AND r.reviewed_at >= date('now', '-56 days')
+            FROM review_time_log l
+            WHERE l.started_at >= date('now', '-56 days')
             GROUP BY week_start
             ORDER BY week_start"#,
         )?;

@@ -1,18 +1,30 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, onUnmounted, ref, shallowRef, provide, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, shallowRef, provide, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
+import { RefreshCw, Bell } from 'lucide-vue-next'
 import { useRepositoriesStore } from './stores/repositories'
 import { usePullRequestsStore } from './stores/pullRequests'
+import { useNotificationCentreStore } from './stores/notificationCentre'
 import { useKeyboardShortcuts, type PrListContext } from './composables/useKeyboardShortcuts'
 import { useCommandPalette } from './composables/useCommandPalette'
 import { useAutoSync } from './composables/useAutoSync'
 import { useFocusMode } from './composables/useFocusMode'
 import { useTheme } from './composables/useTheme'
-import { SRouteProgressBar, SCommandPalette } from '@stuntrocket/ui'
+import {
+  SAmbientBlobs,
+  STopbar,
+  SRouteProgressBar,
+  SCommandPalette,
+  SButton,
+  SIconButton,
+  SStatusDot,
+  SSpinner,
+  SKbd,
+  useRelativeTime,
+} from '@stuntrocket/ui'
 import AppSidebar from './components/layout/AppSidebar.vue'
-import AppHeader from './components/layout/AppHeader.vue'
 import ToastContainer from './components/ToastContainer.vue'
 const NotificationDrawer = defineAsyncComponent(() => import('./components/NotificationDrawer.vue'))
 import ConfirmDialog from './components/ConfirmDialog.vue'
@@ -21,8 +33,10 @@ const OnboardingWizard = defineAsyncComponent(() => import('./components/Onboard
 import { useOnboarding } from './composables/useOnboarding'
 
 const router = useRouter()
+const route = useRoute()
 const repoStore = useRepositoriesStore()
 const prStore = usePullRequestsStore()
+const notifStore = useNotificationCentreStore()
 
 /** PR list navigation context — set by PullRequests.vue, consumed by keyboard shortcuts */
 const prListContext = shallowRef<PrListContext | null>(null)
@@ -35,6 +49,25 @@ const { focusActive } = useFocusMode()
 /* Initialise theme (mode + accent) so it applies on app load */
 useTheme()
 const { showOnboarding } = useOnboarding()
+
+/* Page title derived from route */
+const pageTitle = computed(() => {
+  const titles: Record<string, string> = {
+    '/dashboard': 'Dashboard',
+    '/aggregate': 'Aggregate Dashboard',
+    '/prs': 'Pull Requests',
+    '/repositories': 'Repositories',
+    '/settings': 'Settings',
+  }
+  for (const [path, title] of Object.entries(titles)) {
+    if (route.path.startsWith(path)) return title
+  }
+  return 'Fuse'
+})
+
+/* Relative time for last synced — uses library composable */
+const lastSyncedDate = computed(() => prStore.lastSynced ? new Date(prStore.lastSynced) : null)
+const { relative: lastSyncedRelative } = useRelativeTime(lastSyncedDate, 30_000)
 
 /* Route progress bar — driven by router navigation guards */
 const routeLoading = ref(false)
@@ -109,52 +142,72 @@ function onCommandSelectByIndex(index: number) {
 
 <template>
   <div class="app-root">
-    <!--
-      AppHeader now uses STopbar which provides:
-      - Fixed position at top (52px height)
-      - macOS traffic light padding (drag region)
-      This replaces the old custom TitleBar entirely.
-    -->
-    <AppHeader
-      :syncing="prStore.syncing"
-      :last-synced="prStore.lastSynced"
-      :auto-sync-active="isPolling"
-      @sync-requested="prStore.syncAll()"
-    />
+    <SAmbientBlobs />
 
-    <!--
-      App layout: sidebar + main.
-      SAppShell was considered but not used here because AppSidebar already
-      wraps its content in SSidebar, which provides its own container styling.
-      Using SAppShell would create a redundant double-wrapper.
-    -->
+    <!-- Topbar — replaces both TitleBar and AppHeader -->
+    <STopbar traffic-light-padding="78px">
+      <template #left>
+        <h1 class="topbar-title">{{ pageTitle }}</h1>
+      </template>
+      <template #right>
+        <span v-if="isPolling" class="auto-sync-indicator">
+          <SStatusDot variant="success" pulse />
+          <span class="auto-sync-label">Auto-sync</span>
+        </span>
+        <span v-if="lastSyncedRelative" class="sync-status">
+          Synced {{ lastSyncedRelative }}
+        </span>
+        <SIconButton
+          variant="ghost"
+          size="sm"
+          tooltip="Notifications"
+          @click="notifStore.toggleDrawer()"
+        >
+          <Bell :size="16" />
+        </SIconButton>
+        <span v-if="notifStore.unreadCount > 0" class="bell-badge">
+          {{ notifStore.unreadCount > 9 ? '9+' : notifStore.unreadCount }}
+        </span>
+        <SButton
+          variant="secondary"
+          size="sm"
+          :loading="prStore.syncing"
+          @click="prStore.syncAll()"
+        >
+          <RefreshCw :size="14" />
+          {{ prStore.syncing ? 'Syncing…' : 'Sync' }}
+        </SButton>
+      </template>
+    </STopbar>
+
+    <!-- App content — below fixed topbar -->
     <div class="app-layout">
       <AppSidebar />
-      <div class="app-main">
-        <main class="app-content">
-          <SRouteProgressBar :loading="routeLoading" />
-          <!-- Navigation loading overlay — shows immediately on tray PR clicks -->
-          <Transition name="nav-loading">
-            <div v-if="navigating" class="nav-loading-overlay">
-              <div class="nav-loading-spinner" />
-              <span class="nav-loading-text">Loading pull request…</span>
-            </div>
-          </Transition>
-          <router-view :key="$route.path" />
-        </main>
-      </div>
+      <main class="app-content">
+        <SRouteProgressBar :loading="routeLoading" />
+        <!-- Navigation loading overlay — shows immediately on tray PR clicks -->
+        <Transition name="nav-loading">
+          <div v-if="navigating" class="nav-loading-overlay">
+            <SSpinner />
+            <span class="nav-loading-text">Loading pull request…</span>
+          </div>
+        </Transition>
+        <router-view :key="$route.path" />
+      </main>
     </div>
 
     <!-- Focus mode: floating exit pill -->
     <Transition name="focus-pill-fade">
-      <button
+      <SButton
         v-if="focusActive"
+        variant="secondary"
+        size="sm"
         class="focus-exit-pill"
         @click="focusActive = false"
       >
         Exit Focus
-        <kbd class="focus-exit-kbd">⌘⇧F</kbd>
-      </button>
+        <SKbd>⌘⇧F</SKbd>
+      </SButton>
     </Transition>
 
     <OnboardingWizard v-if="showOnboarding" />
@@ -204,64 +257,79 @@ function onCommandSelectByIndex(index: number) {
 
 .app-layout {
   display: flex;
-  height: calc(100% - 52px);
-  margin-top: 52px;
+  height: 100%;
+  padding-top: 52px; /* Below fixed STopbar */
   position: relative;
   z-index: 10;
-}
-
-.app-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
 }
 
 .app-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-6);
+  padding: var(--space-4) var(--space-5);
   position: relative;
+  min-width: 0;
 }
 
-/* Focus exit pill — fixed floating button */
+/* Topbar content */
+.topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.auto-sync-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: 12px;
+  color: var(--color-status-success);
+  font-weight: 500;
+}
+
+.auto-sync-label {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .auto-sync-label {
+    display: inline;
+  }
+}
+
+.sync-status {
+  font-size: 12px;
+  color: var(--color-text-secondary, var(--color-text-muted));
+}
+
+/* Notification badge — positioned relative to bell button */
+.bell-badge {
+  position: relative;
+  margin-left: -12px;
+  margin-right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--color-status-danger);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  z-index: 1;
+}
+
+/* Focus exit pill */
 .focus-exit-pill {
-  position: fixed;
+  position: fixed !important;
   bottom: var(--space-6);
   left: 50%;
   transform: translateX(-50%);
   z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-5);
-  background: var(--color-surface-panel);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-overlay);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.focus-exit-pill:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-}
-
-.focus-exit-kbd {
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 1px var(--space-1-5);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-default);
 }
 
 /* Transition for the exit pill */
@@ -289,26 +357,13 @@ function onCommandSelectByIndex(index: number) {
   align-items: center;
   justify-content: center;
   gap: var(--space-4);
-  background: var(--color-surface-base);
-}
-
-.nav-loading-spinner {
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid var(--color-border-default);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: nav-spin 0.7s linear infinite;
+  background: var(--color-surface, var(--color-surface-base));
 }
 
 .nav-loading-text {
   font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary, var(--color-text-muted));
   font-weight: 500;
-}
-
-@keyframes nav-spin {
-  to { transform: rotate(360deg); }
 }
 
 .nav-loading-enter-active {
@@ -332,7 +387,7 @@ function onCommandSelectByIndex(index: number) {
   padding: var(--space-2, 8px) var(--space-3, 12px);
   border-radius: var(--radius-md, 6px);
   cursor: pointer;
-  transition: background 0.1s ease;
+  transition: background var(--duration-instant, 100ms) ease;
 }
 
 .palette-item:hover,
@@ -341,7 +396,7 @@ function onCommandSelectByIndex(index: number) {
 }
 
 .palette-item--active {
-  background: var(--color-accent-muted, rgba(20, 184, 166, 0.2));
+  background: var(--color-accent-subtle, rgba(20, 184, 166, 0.2));
 }
 
 .palette-item-icon {
@@ -367,13 +422,13 @@ function onCommandSelectByIndex(index: number) {
 
 .palette-item-subtitle {
   font-size: 12px;
-  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.5));
 }
 
 .palette-empty {
   padding: var(--space-6, 24px);
   text-align: center;
-  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.5));
   font-size: 13px;
 }
 </style>

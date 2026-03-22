@@ -40,6 +40,7 @@ pub struct PullRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PrReview {
     pub id: i64,
     pub pr_id: i64,
@@ -373,6 +374,7 @@ pub struct Deployment {
 
 /// Raw JSON shape for a deployment from `gh api repos/{owner}/{repo}/deployments`.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct GhDeploymentJson {
     pub id: u64,
     #[serde(rename = "ref")]

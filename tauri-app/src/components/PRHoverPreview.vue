@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { SCard } from '@stuntrocket/ui'
+import { SCard, STag } from '@stuntrocket/ui'
 import type { PullRequest } from '../types'
 import { computeRiskScore, computeRiskBreakdown, riskLevel, riskColour } from '../composables/useRiskScore'
 
@@ -79,7 +79,7 @@ const cardStyle = computed(() => {
 
         <!-- Labels -->
         <div v-if="pr.labels.length > 0" class="preview-labels">
-          <span v-for="label in pr.labels" :key="label" class="preview-label">{{ label }}</span>
+          <STag v-for="label in pr.labels" :key="label">{{ label }}</STag>
         </div>
 
         <!-- CI / review status summary -->
@@ -179,14 +179,6 @@ const cardStyle = computed(() => {
   margin-bottom: var(--space-3);
 }
 
-.preview-label {
-  background: rgba(20, 184, 166, 0.15);
-  color: var(--color-accent);
-  font-size: 11px;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-  font-weight: 500;
-}
 
 .preview-ci {
   display: flex;

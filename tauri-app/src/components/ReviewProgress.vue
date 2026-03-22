@@ -19,8 +19,8 @@ const progressValue = computed(() => {
 })
 
 // SVG donut parameters — retained for primary visual display
-const size = 72
-const strokeWidth = 7
+const size = 36
+const strokeWidth = 3.5
 const radius = (size - strokeWidth) / 2
 const circumference = 2 * Math.PI * radius
 
@@ -63,8 +63,6 @@ const dashOffset = computed(() => {
     </div>
     <SProgressBar
       :value="progressValue"
-      :label="`${reviewed} of ${total} PR${total === 1 ? '' : 's'} reviewed`"
-      :show-value="true"
       size="sm"
       class="progress-bar"
     />
@@ -75,11 +73,16 @@ const dashOffset = computed(() => {
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .review-progress {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-1);
 }
 
 .donut-wrap {
@@ -111,7 +114,7 @@ const dashOffset = computed(() => {
 }
 
 .donut-percentage {
-  font-size: 16px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--color-text-primary);
   font-family: var(--font-mono);

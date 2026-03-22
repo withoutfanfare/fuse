@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Bug, HelpCircle, Lightbulb, AlertOctagon, StickyNote, Check, Trash2 } from 'lucide-vue-next'
 import { SButton, SSelect, STextarea, SBadge, SIconButton, SSpinner } from '@stuntrocket/ui'
 import { useBookmarks } from '../composables/useBookmarks'
@@ -54,7 +54,7 @@ const categoryColours: Record<BookmarkCategory, string> = {
 }
 
 /** SSelect options for file picker */
-const fileSelectOptions = props.availableFiles.map(f => ({ value: f, label: f }))
+const fileSelectOptions = computed(() => props.availableFiles.map(f => ({ value: f, label: f })))
 
 onMounted(() => {
   fetchBookmarks(props.prId)
@@ -177,11 +177,11 @@ defineExpose({ prefillBookmark })
             </div>
 
             <div v-if="editingId === bookmark.id" class="bookmark-edit" @click.stop>
-              <SSelect
-                v-model="editCategory"
-                :options="categoryOptions"
-                label="Category"
-              />
+              <SSelect v-model="editCategory" label="Category">
+                <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </SSelect>
               <STextarea
                 v-model="editNote"
                 placeholder="Update note..."
@@ -199,12 +199,12 @@ defineExpose({ prefillBookmark })
         </div>
 
         <div v-if="showAddForm" class="bookmark-add-form" @click.stop>
-          <SSelect
-            v-if="props.availableFiles.length > 0"
-            v-model="newFilePath"
-            :options="fileSelectOptions"
-            placeholder="Select a file..."
-          />
+          <SSelect v-if="props.availableFiles.length > 0" v-model="newFilePath">
+            <option value="" disabled>Select a file...</option>
+            <option v-for="opt in fileSelectOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </SSelect>
           <input
             v-else
             v-model="newFilePath"
@@ -226,11 +226,11 @@ defineExpose({ prefillBookmark })
               placeholder="End line"
             />
           </div>
-          <SSelect
-            v-model="newCategory"
-            :options="categoryOptions"
-            label="Category"
-          />
+          <SSelect v-model="newCategory" label="Category">
+            <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </SSelect>
           <STextarea
             v-model="newNote"
             placeholder="Note (optional)"
@@ -263,7 +263,6 @@ defineExpose({ prefillBookmark })
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  margin-top: var(--space-4);
   overflow: hidden;
 }
 

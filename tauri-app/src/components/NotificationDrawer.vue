@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { CheckCheck, Trash2, Info, AlertTriangle, AlertCircle, CheckCircle, X } from 'lucide-vue-next'
-import { SPanel, SIconButton } from '@stuntrocket/ui'
+import { SDrawer, SIconButton } from '@stuntrocket/ui'
 import { useNotificationCentreStore } from '../stores/notificationCentre'
 import type { ToastType } from '../types'
 
@@ -37,10 +37,11 @@ const isEmpty = computed(() => store.entries.length === 0)
 </script>
 
 <template>
-  <SPanel
+  <SDrawer
     :open="store.drawerOpen"
     title="Notifications"
     size="sm"
+    side="right"
     closable
     overlay
     @close="store.closeDrawer()"
@@ -94,17 +95,19 @@ const isEmpty = computed(() => store.entries.length === 0)
             <span v-if="entry.message" class="notif-message">{{ entry.message }}</span>
             <span class="notif-time">{{ formatTime(entry.timestamp) }}</span>
           </div>
-          <button
+          <SIconButton
+            variant="ghost"
+            size="sm"
+            tooltip="Dismiss"
             class="notif-dismiss"
-            title="Dismiss"
             @click="store.remove(entry.id)"
           >
             <X :size="14" />
-          </button>
+          </SIconButton>
         </div>
       </TransitionGroup>
     </div>
-  </SPanel>
+  </SDrawer>
 </template>
 
 <style scoped>
@@ -215,27 +218,12 @@ const isEmpty = computed(() => store.entries.length === 0)
 
 .notif-dismiss {
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-sm);
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
   opacity: 0;
-  transition: all var(--transition-fast);
+  transition: opacity var(--transition-fast);
 }
 
 .notif-item:hover .notif-dismiss {
   opacity: 1;
-}
-
-.notif-dismiss:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface-hover);
 }
 
 /* List item transitions */

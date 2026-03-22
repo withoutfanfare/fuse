@@ -366,23 +366,13 @@ pub fn merge_pull_request(
     Ok(result)
 }
 
+/// Delegates to `log_review_time` so both the granular log and the
+/// aggregate `pr_reviews` row are updated consistently.
 #[tauri::command]
 pub fn record_review_time(
     pr_id: i64,
     seconds: i64,
     state: State<'_, DbState>,
 ) -> Result<(), CommandError> {
-    let db = state.writer.lock().unwrap();
-    // Ensure a pr_reviews row exists before updating
-    db.execute(
-        r#"INSERT INTO pr_reviews (pr_id, status, updated_at)
-           VALUES (?1, 'pending', datetime('now'))
-           ON CONFLICT(pr_id) DO NOTHING"#,
-        rusqlite::params![pr_id],
-    )?;
-    db.execute(
-        "UPDATE pr_reviews SET review_duration_seconds = COALESCE(review_duration_seconds, 0) + ?1 WHERE pr_id = ?2",
-        rusqlite::params![seconds, pr_id],
-    )?;
-    Ok(())
+    super::time_tracking::log_review_time(pr_id, seconds, state)
 }

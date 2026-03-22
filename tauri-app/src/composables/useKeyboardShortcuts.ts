@@ -69,7 +69,7 @@ export function useKeyboardShortcuts(
     if (e.key === '/') {
       if (isInputFocused()) return
       e.preventDefault()
-      const searchInput = document.querySelector('.search-input') as HTMLInputElement | null
+      const searchInput = document.querySelector<HTMLInputElement>('.search-input input')
       if (searchInput) searchInput.focus()
       return
     }

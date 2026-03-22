@@ -101,31 +101,36 @@ const totalFormatted = computed(() => {
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .loading-state {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   justify-content: center;
   color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-4);
+  font-size: 12px;
+  padding: var(--space-2);
 }
 
 .error-state {
   text-align: center;
   color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-4);
+  font-size: 12px;
+  padding: var(--space-2);
 }
 
 .time-content {
-  margin-top: var(--space-4);
+  margin-top: var(--space-2);
 }
 
 .time-stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-2);
 }
 
 .time-stat {
@@ -136,26 +141,26 @@ const totalFormatted = computed(() => {
 }
 
 .time-stat-value {
-  font-size: 24px;
+  font-size: 15px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--color-text-primary);
 }
 
 .time-stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted);
 }
 
 .time-breakdown {
-  margin-top: var(--space-4);
+  margin-top: var(--space-2);
 }
 
 .tier-bars {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+  gap: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .tier-bar-row {
@@ -165,9 +170,9 @@ const totalFormatted = computed(() => {
 }
 
 .tier-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  width: 56px;
+  width: 50px;
   text-transform: capitalize;
 }
 
@@ -177,7 +182,7 @@ const totalFormatted = computed(() => {
 
 .tier-bar-track {
   flex: 1;
-  height: 8px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -195,9 +200,9 @@ const totalFormatted = computed(() => {
 
 .tier-value {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-secondary);
-  width: 48px;
+  width: 44px;
   text-align: right;
 }
 
@@ -207,21 +212,21 @@ const totalFormatted = computed(() => {
 }
 
 .time-trend {
-  margin-top: var(--space-4);
+  margin-top: var(--space-2);
 }
 
 .trend-rows {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+  gap: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .trend-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  font-size: 12px;
+  gap: var(--space-2);
+  font-size: 11px;
   padding: var(--space-1) 0;
   border-bottom: 1px solid var(--color-border-default);
 }

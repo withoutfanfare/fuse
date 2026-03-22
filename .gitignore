@@ -3,6 +3,7 @@
 
 .claude/
 .serena/
+.superpowers/
 
 tauri-app/node_modules/
 tauri-app/dist/

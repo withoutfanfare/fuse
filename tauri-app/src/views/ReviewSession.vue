@@ -7,7 +7,7 @@ import { useDiff } from '../composables/useDiff'
 import { useReviewSession } from '../composables/useReviewSession'
 import type { PullRequest, DiffFile } from '../types'
 import { ArrowLeft } from 'lucide-vue-next'
-import { SBreadcrumbs } from '@stuntrocket/ui'
+import { SBreadcrumbs, SSelect, SProgressBar } from '@stuntrocket/ui'
 import ContentLoader from '../components/ContentLoader.vue'
 
 const route = useRoute()
@@ -39,6 +39,18 @@ const {
   isFileReviewed,
   saveNotes,
 } = useReviewSession(prId)
+
+/** SSelect string bridge for pomodoro duration. */
+const pomodoroSelectValue = computed({
+  get() { return String(pomodoroMinutes.value) },
+  set(val: string) { pomodoroMinutes.value = Number(val) },
+})
+const pomodoroOptions = [
+  { value: '15', label: '15 min' },
+  { value: '25', label: '25 min' },
+  { value: '45', label: '45 min' },
+  { value: '60', label: '60 min' },
+]
 
 const repoFullName = computed(() => {
   if (!pr.value) return ''
@@ -187,20 +199,17 @@ watch(() => diffFiles.value.length, (count) => {
             >
               Resume
             </button>
-            <select v-model.number="pomodoroMinutes" class="timer-duration-select">
-              <option :value="15">15 min</option>
-              <option :value="25">25 min</option>
-              <option :value="45">45 min</option>
-              <option :value="60">60 min</option>
-            </select>
+            <SSelect v-model="pomodoroSelectValue" size="sm">
+              <option v-for="opt in pomodoroOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </SSelect>
           </div>
         </div>
 
         <!-- Progress bar -->
         <div class="progress-section">
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" :style="{ width: `${reviewProgress}%` }" />
-          </div>
+          <SProgressBar :value="reviewProgress / 100" variant="accent" size="sm" />
           <span class="progress-label">{{ reviewProgress }}% reviewed</span>
         </div>
 
@@ -487,15 +496,6 @@ watch(() => diffFiles.value.length, (count) => {
   border-color: rgba(20, 184, 166, 0.3);
 }
 
-.timer-duration-select {
-  background: var(--color-surface-input);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  padding: 1px var(--space-1);
-  cursor: pointer;
-}
 
 /* Progress section */
 .progress-section {
@@ -507,19 +507,6 @@ watch(() => diffFiles.value.length, (count) => {
   max-width: 240px;
 }
 
-.progress-bar-track {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: var(--color-accent);
-  border-radius: 3px;
-  transition: width var(--transition-fast);
-}
 
 .progress-label {
   font-size: 10px;

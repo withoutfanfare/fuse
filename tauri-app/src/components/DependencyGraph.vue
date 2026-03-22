@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { SButton, SCard, SEmptyState } from '@stuntrocket/ui'
+import { SButton, SCard, SEmptyState, SSectionHeader } from '@stuntrocket/ui'
 import type { DependencyNode, DependencyEdge } from '../composables/useDependencyGraph'
 import ContentLoader from './ContentLoader.vue'
 
@@ -23,9 +23,9 @@ const router = useRouter()
 
 // SVG dimensions
 const svgWidth = 800
-const svgHeight = 400
-const nodeRadius = 28
-const padding = 60
+const svgHeight = 200
+const nodeRadius = 18
+const padding = 40
 
 interface PositionedNode extends DependencyNode {
   x: number
@@ -47,10 +47,10 @@ const positionedNodes = computed<PositionedNode[]>(() => {
   }
 
   for (const edge of props.edges) {
-    const deps = adjList.get(edge.to) ?? []
-    deps.push(edge.from)
-    adjList.set(edge.to, deps)
-    inDegree.set(edge.from, (inDegree.get(edge.from) ?? 0) + 1)
+    const dependants = adjList.get(edge.from) ?? []
+    dependants.push(edge.to)
+    adjList.set(edge.from, dependants)
+    inDegree.set(edge.to, (inDegree.get(edge.to) ?? 0) + 1)
   }
 
   // BFS to assign levels (root = level 0, dependants go right)
@@ -95,7 +95,7 @@ const positionedNodes = computed<PositionedNode[]>(() => {
   // Position nodes
   const usableWidth = svgWidth - 2 * padding
   const usableHeight = svgHeight - 2 * padding
-  const colSpacing = maxLevel > 0 ? usableWidth / maxLevel : 0
+  const colSpacing = maxLevel > 0 ? usableWidth / maxLevel : usableWidth
 
   const positioned: PositionedNode[] = []
   for (const [level, group] of levelGroups) {
@@ -139,7 +139,7 @@ function navigateToPr(nodeId: number) {
 <template>
   <SCard variant="content" class="dependency-graph-panel">
     <div class="graph-header">
-      <h3 class="graph-title">PR Dependency Graph</h3>
+      <SSectionHeader title="PR Dependency Graph" />
       <SButton variant="secondary" size="sm" :disabled="loading" :loading="loading" @click="emit('refresh')">
         Refresh
       </SButton>
@@ -257,11 +257,16 @@ function navigateToPr(nodeId: number) {
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .graph-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .graph-title {
@@ -284,7 +289,7 @@ function navigateToPr(nodeId: number) {
 .graph-svg {
   width: 100%;
   height: auto;
-  min-height: 200px;
+  min-height: 140px;
 }
 
 .graph-node {
@@ -316,7 +321,7 @@ function navigateToPr(nodeId: number) {
 
 .node-number {
   fill: var(--color-text-primary);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   font-family: var(--font-mono);
   pointer-events: none;
@@ -324,7 +329,7 @@ function navigateToPr(nodeId: number) {
 
 .node-label {
   fill: var(--color-text-muted);
-  font-size: 9px;
+  font-size: 8px;
   pointer-events: none;
 }
 
@@ -336,9 +341,9 @@ function navigateToPr(nodeId: number) {
 
 .graph-legend {
   display: flex;
-  gap: var(--space-4);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--color-border-default);
 }
 

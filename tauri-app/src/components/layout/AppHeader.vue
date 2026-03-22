@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { RefreshCw, Bell } from 'lucide-vue-next'
-import { STopbar } from '@stuntrocket/ui'
 import { useNotificationCentreStore } from '../../stores/notificationCentre'
 
 const props = defineProps<{
@@ -60,12 +59,11 @@ const lastSyncedFormatted = computed(() => {
 </script>
 
 <template>
-  <STopbar>
-    <template #left>
+  <header class="app-header">
+    <div class="header-left">
       <h1 class="header-title">{{ pageTitle }}</h1>
-    </template>
-
-    <template #right>
+    </div>
+    <div class="header-actions">
       <span v-if="autoSyncActive" class="auto-sync-indicator" title="Auto-sync active">
         <span class="auto-sync-dot"></span>
         Auto-sync
@@ -89,18 +87,33 @@ const lastSyncedFormatted = computed(() => {
         @click="emit('sync-requested')"
       >
         <RefreshCw :size="16" class="sync-icon" :class="{ spinning: syncing }" />
-        {{ syncing ? 'Syncing\u2026' : 'Sync' }}
+        {{ syncing ? 'Syncing…' : 'Sync' }}
       </button>
-    </template>
-  </STopbar>
+    </div>
+  </header>
 </template>
 
 <style scoped>
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-6) var(--space-4);
+  background: transparent;
+  flex-shrink: 0;
+}
+
 .header-title {
   font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 .auto-sync-indicator {

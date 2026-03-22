@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { SCard } from '@stuntrocket/ui'
+import { SCard, SSectionHeader } from '@stuntrocket/ui'
 import type { VelocityPoint } from '../types'
 
 const props = defineProps<{
@@ -10,8 +10,8 @@ const props = defineProps<{
 const containerRef = ref<HTMLElement | null>(null)
 const containerWidth = ref(600)
 
-const padding = { top: 20, right: 20, bottom: 40, left: 40 }
-const chartHeight = 200
+const padding = { top: 12, right: 16, bottom: 28, left: 32 }
+const chartHeight = 120
 
 const chartWidth = computed(() => Math.max(containerWidth.value, 300))
 const innerWidth = computed(() => chartWidth.value - padding.left - padding.right)
@@ -100,6 +100,7 @@ onUnmounted(() => {
 
 <template>
   <SCard variant="content">
+    <SSectionHeader title="Review Velocity" />
     <div ref="containerRef" class="velocity-chart-container">
       <svg
         :width="chartWidth"
@@ -194,6 +195,11 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .velocity-chart-container {
   width: 100%;
 }
@@ -211,16 +217,16 @@ onUnmounted(() => {
 
 .velocity-legend {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-3);
   justify-content: center;
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-secondary);
 }
 

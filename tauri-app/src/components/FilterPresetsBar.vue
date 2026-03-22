@@ -54,17 +54,18 @@ async function finishRename() {
   <div class="filter-presets-bar">
     <span class="presets-label">Presets</span>
     <div class="presets-list">
-      <button
+      <SButton
         v-for="preset in presets"
         :key="preset.id"
-        class="preset-chip"
+        variant="ghost"
+        size="sm"
         :class="{ active: activePresetId === preset.id }"
         @click="handleApply(preset)"
       >
         <template v-if="editingId === preset.id">
-          <input
+          <SInput
             v-model="editingName"
-            class="preset-rename-input"
+            size="sm"
             @keyup.enter="finishRename"
             @blur="finishRename"
             @click.stop
@@ -91,7 +92,7 @@ async function finishRename() {
             <Trash2 :size="10" />
           </SIconButton>
         </template>
-      </button>
+      </SButton>
     </div>
     <SButton
       v-if="!showSaveDialog"
@@ -136,26 +137,7 @@ async function finishRename() {
   flex-wrap: wrap;
 }
 
-.preset-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  background: var(--color-surface-raised);
-  border: 1px solid transparent;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.preset-chip:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-}
-
-.preset-chip.active {
+.active {
   background: var(--color-accent-muted);
   color: var(--color-accent);
   border-color: rgba(20, 184, 166, 0.3);
@@ -164,17 +146,6 @@ async function finishRename() {
 
 .preset-name {
   white-space: nowrap;
-}
-
-.preset-rename-input {
-  width: 80px;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-focus);
-  border-radius: var(--radius-sm);
-  padding: 1px var(--space-1);
-  font-size: 12px;
-  color: var(--color-text-primary);
-  outline: none;
 }
 
 .preset-save-dialog {

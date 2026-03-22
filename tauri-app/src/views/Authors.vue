@@ -27,7 +27,7 @@ onMounted(async () => {
 
 <style scoped>
 .authors-view {
-  max-width: 1100px;
+  width: 100%;
 }
 
 .page-title {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { SBadge } from '@stuntrocket/ui'
+import { SBadge, SButton, STextarea } from '@stuntrocket/ui'
 import type { ReviewStatus } from '../types'
 import ReviewPipeline from './ReviewPipeline.vue'
 
@@ -51,23 +51,26 @@ const statusOptions: { value: ReviewStatus; label: string }[] = [
           v-for="opt in statusOptions"
           :key="opt.value"
           :variant="localStatus === opt.value ? statusVariantMap[opt.value] : 'default'"
+          role="button"
+          tabindex="0"
           class="status-btn"
           :class="{ active: localStatus === opt.value }"
           @click="localStatus = opt.value"
+          @keydown.enter="localStatus = opt.value"
+          @keydown.space.prevent="localStatus = opt.value"
         >
           {{ opt.label }}
         </SBadge>
       </div>
     </div>
     <div class="notes-row">
-      <textarea
+      <STextarea
         v-model="localNotes"
-        class="notes-input"
         placeholder="Add review notes..."
-        rows="3"
+        :rows="3"
       />
     </div>
-    <button class="save-btn" @click="save">Save Review</button>
+    <SButton variant="primary" class="save-btn" @click="save">Save Review</SButton>
   </div>
 </template>
 
@@ -81,6 +84,16 @@ const statusOptions: { value: ReviewStatus; label: string }[] = [
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+.status-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-row {
+  display: flex;
+  flex-direction: column;
 }
 
 .status-label {
@@ -115,50 +128,7 @@ const statusOptions: { value: ReviewStatus; label: string }[] = [
   transform: scale(0.97);
 }
 
-.notes-input {
-  width: 100%;
-  resize: vertical;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  transition: border-color var(--transition-fast);
-}
-
-.notes-input:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.notes-input::placeholder {
-  color: var(--color-text-muted);
-}
-
 .save-btn {
   align-self: flex-end;
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  font-weight: 600;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-
-.save-btn:hover {
-  background: var(--color-accent-hover);
-}
-
-.save-btn:active {
-  transform: scale(0.97);
-}
-
-.save-btn:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
 }
 </style>

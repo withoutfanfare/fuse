@@ -4,11 +4,10 @@ import { FolderGit2 } from 'lucide-vue-next'
 import { useRepositoriesStore } from '../stores/repositories'
 import { usePullRequestsStore } from '../stores/pullRequests'
 import { useGroupsStore } from '../stores/groups'
-import { useConfirm } from '@stuntrocket/ui'
+import { useConfirm, SEmptyState, SInput, SButton } from '@stuntrocket/ui'
 import RepositoryCard from '../components/RepositoryCard.vue'
 import ReviewRulesEditor from '../components/ReviewRulesEditor.vue'
 import GroupManager from '../components/GroupManager.vue'
-import { SEmptyState } from '@stuntrocket/ui'
 import ContentLoader from '../components/ContentLoader.vue'
 
 const repoStore = useRepositoriesStore()
@@ -90,27 +89,31 @@ function prCountForRepo(repoId: number): number {
     <section class="add-repo-section">
       <h2 class="section-title">Add Repository</h2>
       <form class="add-repo-form" @submit.prevent="addRepo">
-        <input
-          v-model="newOwner"
+        <SInput
+          :model-value="newOwner"
           placeholder="Owner (e.g. bemanza)"
-          class="input-field"
+          size="sm"
           required
+          @update:model-value="newOwner = $event"
         />
         <span class="slash">/</span>
-        <input
-          v-model="newName"
+        <SInput
+          :model-value="newName"
           placeholder="Repository (e.g. my-project)"
-          class="input-field"
+          size="sm"
           required
+          @update:model-value="newName = $event"
         />
-        <input
-          v-model="newBranch"
+        <SInput
+          :model-value="newBranch"
           placeholder="Default branch"
-          class="input-field input-branch"
+          size="sm"
+          class="input-branch"
+          @update:model-value="newBranch = $event"
         />
-        <button type="submit" class="btn-add" :disabled="adding">
+        <SButton variant="primary" size="sm" :loading="adding" type="submit">
           {{ adding ? 'Adding…' : 'Add' }}
-        </button>
+        </SButton>
       </form>
       <div v-if="addError" class="add-error">{{ addError }}</div>
     </section>
@@ -185,27 +188,6 @@ function prCountForRepo(repoId: number): number {
   gap: var(--space-2);
 }
 
-.input-field {
-  flex: 1;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  transition: border-color var(--transition-fast);
-}
-
-.input-field:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.input-field::placeholder {
-  color: var(--color-text-muted);
-}
-
 .input-branch {
   max-width: 150px;
 }
@@ -213,36 +195,6 @@ function prCountForRepo(repoId: number): number {
 .slash {
   color: var(--color-text-muted);
   font-size: 18px;
-}
-
-.btn-add {
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  font-weight: 600;
-  padding: var(--space-2) var(--space-5);
-  white-space: nowrap;
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-
-.btn-add:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.btn-add:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-add:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-add:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .add-error {

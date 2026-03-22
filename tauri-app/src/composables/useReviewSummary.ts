@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { useClipboard } from '@stuntrocket/ui'
 import type { PullRequest, Bookmark } from '../types'
 import { computeRiskScore, riskLevel } from './useRiskScore'
 
@@ -12,6 +13,7 @@ export function useReviewSummary() {
   const summaryMarkdown = ref('')
   const posting = ref(false)
   const postError = ref<string | null>(null)
+  const { copy } = useClipboard()
 
   /**
    * Generate a Markdown review summary from the current review state.
@@ -96,12 +98,7 @@ export function useReviewSummary() {
    * Copy the generated summary to the clipboard.
    */
   async function copyToClipboard(): Promise<boolean> {
-    try {
-      await navigator.clipboard.writeText(summaryMarkdown.value)
-      return true
-    } catch {
-      return false
-    }
+    return copy(summaryMarkdown.value)
   }
 
   /**

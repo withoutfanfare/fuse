@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { SBadge, SStatusDot } from '@stuntrocket/ui'
+import { SBadge, SStatusDot, SIconButton } from '@stuntrocket/ui'
 import type { Deployment } from '../types'
 
 defineProps<{
@@ -33,10 +33,10 @@ function badgeVariant(status: string): 'success' | 'warning' | 'error' | 'defaul
 }
 
 /** Map deployment status to SStatusDot variant. */
-function dotVariant(status: string): 'success' | 'warning' | 'error' | 'neutral' {
+function dotVariant(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
   if (status === 'success' || status === 'active') return 'success'
   if (status === 'pending' || status === 'queued' || status === 'in_progress') return 'warning'
-  if (status === 'failure' || status === 'error') return 'error'
+  if (status === 'failure' || status === 'error') return 'danger'
   return 'neutral'
 }
 
@@ -67,10 +67,12 @@ async function openDeploymentUrl(url: string | null) {
       <SStatusDot :variant="dotVariant(dep.status)" />
       <span class="deployment-env">{{ dep.environment }}</span>
       <span class="deployment-state">{{ statusLabel(dep.status) }}</span>
-      <button
+      <SIconButton
         v-if="dep.url"
+        variant="ghost"
+        size="sm"
+        tooltip="Open deployment"
         class="deployment-link"
-        title="Open deployment"
         @click.stop="openDeploymentUrl(dep.url)"
       >
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -78,7 +80,7 @@ async function openDeploymentUrl(url: string | null) {
           <polyline points="15 3 21 3 21 9" />
           <line x1="10" y1="14" x2="21" y2="3" />
         </svg>
-      </button>
+      </SIconButton>
     </SBadge>
   </div>
 </template>
@@ -115,28 +117,10 @@ async function openDeploymentUrl(url: string | null) {
 }
 
 .deployment-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  background: none;
-  border: none;
-  color: inherit;
   opacity: 0.6;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
 }
 
 .deployment-link:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.deployment-link:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 1px;
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
-import { SListRow, SSectionHeader } from '@stuntrocket/ui'
+import { computed, ref } from 'vue'
+import { SFileTree, SSectionHeader } from '@stuntrocket/ui'
+import type { SFileTreeItem } from '@stuntrocket/ui'
 import type { DiffFile } from '../types'
 
 const props = defineProps<{
@@ -11,21 +12,13 @@ const emit = defineEmits<{
   (e: 'select-file', path: string): void
 }>()
 
-interface TreeNode {
-  name: string
-  fullPath: string
-  isFile: boolean
-  additions: number
-  deletions: number
-  children: TreeNode[]
-  depth: number
-}
-
-/** Track which directory paths are collapsed */
-const collapsed = reactive<Record<string, boolean>>({})
-
-function buildTree(files: DiffFile[]): TreeNode[] {
-  const root: TreeNode[] = []
+/**
+ * Build an SFileTreeItem hierarchy from the flat list of DiffFile paths.
+ * Each file is marked with status 'modified' so that the library renders
+ * a colour-coded change indicator.
+ */
+function buildTreeItems(files: DiffFile[]): SFileTreeItem[] {
+  const root: SFileTreeItem[] = []
 
   for (const file of files) {
     const parts = file.path.split('/')
@@ -36,23 +29,22 @@ function buildTree(files: DiffFile[]): TreeNode[] {
       const isLast = i === parts.length - 1
       const fullPath = parts.slice(0, i + 1).join('/')
 
-      let existing = current.find(n => n.name === part)
+      let existing = current.find(n => n.path === fullPath)
       if (!existing) {
         existing = {
           name: part,
-          fullPath,
-          isFile: isLast,
-          additions: isLast ? file.additions : 0,
-          deletions: isLast ? file.deletions : 0,
-          children: [],
-          depth: i,
+          path: fullPath,
+          type: isLast ? 'file' : 'directory',
+          children: isLast ? undefined : [],
+          status: isLast ? 'modified' : undefined,
         }
         current.push(existing)
       }
 
       if (!isLast) {
-        existing.additions += file.additions
-        existing.deletions += file.deletions
+        if (!existing.children) {
+          existing.children = []
+        }
         current = existing.children
       }
     }
@@ -61,62 +53,66 @@ function buildTree(files: DiffFile[]): TreeNode[] {
   return root
 }
 
-/** Flatten the tree into a visible list, respecting collapsed state */
-function flattenTree(nodes: TreeNode[]): TreeNode[] {
-  const result: TreeNode[] = []
-  for (const node of nodes) {
-    result.push(node)
-    if (!node.isFile && !collapsed[node.fullPath] && node.children.length > 0) {
-      result.push(...flattenTree(node.children))
+const treeItems = computed(() => buildTreeItems(props.files))
+
+/**
+ * Maintain expanded directory paths. All directories start expanded
+ * to match the previous default behaviour (collapsed was opt-in).
+ */
+const expandedPaths = ref<string[]>([])
+const initialised = ref(false)
+
+/** Collect every directory path so we can default them all to expanded. */
+function collectDirPaths(items: SFileTreeItem[]): string[] {
+  const paths: string[] = []
+  for (const item of items) {
+    if (item.type === 'directory') {
+      paths.push(item.path)
+      if (item.children) {
+        paths.push(...collectDirPaths(item.children))
+      }
     }
   }
-  return result
+  return paths
 }
 
-const flatNodes = computed(() => {
-  const tree = buildTree(props.files)
-  return flattenTree(tree)
+/** Expanded paths: all directories expanded on first render, then user-driven. */
+const expandedPathsComputed = computed(() => {
+  if (!initialised.value && treeItems.value.length > 0) {
+    return collectDirPaths(treeItems.value)
+  }
+  return expandedPaths.value
 })
 
-function toggleDir(node: TreeNode) {
-  if (node.isFile) {
-    emit('select-file', node.fullPath)
-  } else {
-    collapsed[node.fullPath] = !collapsed[node.fullPath]
+function handleToggle(path: string) {
+  if (!initialised.value) {
+    initialised.value = true
+    expandedPaths.value = collectDirPaths(treeItems.value)
   }
+  const current = [...expandedPaths.value]
+  const idx = current.indexOf(path)
+  if (idx >= 0) {
+    current.splice(idx, 1)
+  } else {
+    current.push(path)
+  }
+  expandedPaths.value = current
 }
 
-function isExpanded(node: TreeNode): boolean {
-  return !collapsed[node.fullPath]
+function handleSelect(path: string) {
+  emit('select-file', path)
 }
-
-
 </script>
 
 <template>
   <div class="diff-file-tree">
     <SSectionHeader title="Files" />
-    <div class="tree-list">
-      <SListRow
-        v-for="node in flatNodes"
-        :key="node.fullPath"
-        :class="{ 'tree-file': node.isFile, 'tree-dir': !node.isFile }"
-        :style="{ paddingLeft: `${node.depth * 12 + 8}px` }"
-        @click="toggleDir(node)"
-      >
-        <template #default>
-          <span v-if="!node.isFile" class="tree-arrow" :class="{ expanded: isExpanded(node) }">&#9654;</span>
-          <span v-else class="tree-file-icon">&#9675;</span>
-          <span class="tree-name">{{ node.name }}</span>
-        </template>
-        <template #actions>
-          <span class="tree-stats">
-            <span v-if="node.additions > 0" class="tree-add">+{{ node.additions }}</span>
-            <span v-if="node.deletions > 0" class="tree-del">-{{ node.deletions }}</span>
-          </span>
-        </template>
-      </SListRow>
-    </div>
+    <SFileTree
+      :items="treeItems"
+      :expanded-paths="expandedPathsComputed"
+      @select="handleSelect"
+      @toggle="handleToggle"
+    />
   </div>
 </template>
 
@@ -125,59 +121,5 @@ function isExpanded(node: TreeNode): boolean {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-}
-
-.tree-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.tree-arrow {
-  font-size: 8px;
-  color: var(--color-text-muted);
-  transition: transform var(--transition-fast);
-  display: inline-block;
-  width: 12px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.tree-arrow.expanded {
-  transform: rotate(90deg);
-}
-
-.tree-file-icon {
-  font-size: 8px;
-  color: var(--color-text-muted);
-  width: 12px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.tree-name {
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 12px;
-}
-
-.tree-file .tree-name {
-  color: var(--color-text-primary);
-}
-
-.tree-stats {
-  display: flex;
-  gap: var(--space-1);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-.tree-add {
-  color: var(--color-status-success);
-}
-
-.tree-del {
-  color: var(--color-status-danger);
 }
 </style>

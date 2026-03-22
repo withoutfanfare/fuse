@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ClipboardCopy, FileText, CheckCircle, XCircle } from 'lucide-vue-next'
-import { SButton, STextarea, SBadge, SCard, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
+import { SButton, STextarea, SBadge, SCard, SSectionHeader, SEmptyState, useClipboard } from '@stuntrocket/ui'
 import type { PullRequest, ReviewRule, ParsedAiResponse } from '../types'
 import { usePromptBuilder } from '../composables/usePromptBuilder'
 import { useResponseParser } from '../composables/useResponseParser'
@@ -16,6 +16,7 @@ const props = defineProps<{
 const toastStore = useToastStore()
 const { buildPrompt } = usePromptBuilder()
 const { parseResponse } = useResponseParser()
+const { copy } = useClipboard()
 
 const generatedPrompt = ref('')
 const pastedResponse = ref('')
@@ -35,10 +36,10 @@ function handleGenerate() {
 }
 
 async function handleCopy() {
-  try {
-    await navigator.clipboard.writeText(generatedPrompt.value)
+  const ok = await copy(generatedPrompt.value)
+  if (ok) {
     toastStore.addToast('success', 'Copied', 'Prompt copied to clipboard')
-  } catch {
+  } else {
     toastStore.addToast('error', 'Copy failed', 'Could not copy to clipboard')
   }
 }

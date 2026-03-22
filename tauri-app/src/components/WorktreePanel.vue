@@ -2,9 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { AlertTriangle } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
-import { SButton, SCard, SSpinner } from '@stuntrocket/ui'
+import { SButton, SCard, SSpinner, useConfirm, useClipboard } from '@stuntrocket/ui'
 import { useGrove } from '../composables/useGrove'
-import { useConfirm } from '@stuntrocket/ui'
 import { useToastStore } from '../stores/toast'
 
 const props = defineProps<{
@@ -20,6 +19,7 @@ const emit = defineEmits<{
 const { worktrees, loading, error, listWorktrees, addWorktree, removeWorktree } = useGrove()
 const toastStore = useToastStore()
 const { confirm } = useConfirm()
+const { copy } = useClipboard()
 const reviewRequested = ref(false)
 
 onMounted(() => {
@@ -65,7 +65,7 @@ function handleStartReview() {
 /** Copy the claude review command to clipboard */
 async function copyReviewCommand() {
   const cmd = `/worktree-review ${props.repoName} ${props.branch} origin/develop`
-  await navigator.clipboard.writeText(cmd)
+  await copy(cmd)
   toastStore.addToast('info', 'Copied to clipboard', 'Review command ready to paste')
 }
 

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { Bug, HelpCircle, Lightbulb, AlertOctagon, StickyNote, Check, Trash2, Filter } from 'lucide-vue-next'
 import { useGlobalBookmarks } from '../composables/useBookmarks'
 import type { BookmarkWithContext, BookmarkCategory } from '../types'
-import { SBreadcrumbs } from '@stuntrocket/ui'
+import { SBreadcrumbs, SSelect } from '@stuntrocket/ui'
 
 const router = useRouter()
 const { allBookmarks, loading, error, fetchAllBookmarks, toggleResolved, removeBookmark } = useGlobalBookmarks()
@@ -131,16 +131,24 @@ const breadcrumbItems = [{ label: 'Bookmarks' }]
     <div class="bookmarks-filters">
       <div class="filter-group">
         <Filter :size="14" class="filter-icon" />
-        <select v-model="categoryFilter" class="filter-select">
+        <SSelect
+          :model-value="categoryFilter"
+          size="sm"
+          @update:model-value="categoryFilter = $event as BookmarkCategory | 'all'"
+        >
           <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
           </option>
-        </select>
-        <select v-model="resolvedFilter" class="filter-select">
+        </SSelect>
+        <SSelect
+          :model-value="resolvedFilter"
+          size="sm"
+          @update:model-value="resolvedFilter = $event as 'all' | 'active' | 'resolved'"
+        >
           <option v-for="opt in resolvedOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
           </option>
-        </select>
+        </SSelect>
       </div>
     </div>
 
@@ -220,7 +228,7 @@ const breadcrumbItems = [{ label: 'Bookmarks' }]
 <style scoped>
 .bookmarks-view {
   padding: var(--space-6);
-  max-width: 900px;
+  width: 100%;
 }
 
 .bookmarks-view-header {
@@ -255,22 +263,6 @@ const breadcrumbItems = [{ label: 'Bookmarks' }]
 .filter-icon {
   color: var(--color-text-muted);
   flex-shrink: 0;
-}
-
-.filter-select {
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: border-color var(--transition-fast);
-}
-
-.filter-select:focus {
-  border-color: var(--color-border-focus);
-  outline: none;
 }
 
 .bookmarks-view-loading {

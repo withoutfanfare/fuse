@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { riskColour } from '../composables/useRiskScore'
+import { SGauge } from '@stuntrocket/ui'
+import { riskLevel } from '../composables/useRiskScore'
 
 const props = withDefaults(defineProps<{
   score: number
@@ -9,91 +10,112 @@ const props = withDefaults(defineProps<{
   size: 36,
 })
 
-const radius = computed(() => (props.size - 4) / 2)
-const centre = computed(() => props.size / 2)
+/** Map 0-10 score to 0-100 percentage for SGauge's arc fill */
+const gaugeValue = computed(() => Math.min(100, Math.max(0, props.score * 10)))
 
-/* 270-degree arc = 75 % of the full circumference */
-const fullCircumference = computed(() => 2 * Math.PI * radius.value)
-const arcLength = computed(() => fullCircumference.value * 0.75)
+/**
+ * Map risk level to SGauge variant (risk semantics are inverted: high = bad).
+ * 1-3 low risk  → success (green)
+ * 4-6 medium    → warning (yellow/orange)
+ * 7-8 high      → danger  (red)
+ * 9-10 critical → danger  (red)
+ */
+const gaugeVariant = computed<'success' | 'warning' | 'danger'>(() => {
+  const level = riskLevel(props.score)
+  switch (level) {
+    case 'low': return 'success'
+    case 'medium': return 'warning'
+    case 'high':
+    case 'critical': return 'danger'
+  }
+})
 
-/* stroke-dasharray: visible arc + invisible gap */
-const trackDasharray = computed(() => `${arcLength.value} ${fullCircumference.value}`)
+/**
+ * Map pixel size to the closest SGauge preset.
+ * sm = 48px, md = 72px, lg = 96px.
+ * We use the preset closest to the requested size.
+ */
+const gaugeSize = computed<'sm' | 'md' | 'lg'>(() => {
+  if (props.size <= 56) return 'sm'
+  if (props.size <= 84) return 'md'
+  return 'lg'
+})
 
-/* Value arc fills proportionally to score / 10 */
-const valueDash = computed(() => (props.score / 10) * arcLength.value)
-const valueDasharray = computed(() => `${valueDash.value} ${fullCircumference.value}`)
+/**
+ * SGauge preset dimensions — used to calculate the CSS scale factor
+ * so the rendered gauge matches the requested pixel size.
+ */
+const presetDimension = computed(() => {
+  const dimensions = { sm: 48, md: 72, lg: 96 }
+  return dimensions[gaugeSize.value]
+})
 
-/* Rotate so the gap sits at the bottom centre (start at 135 deg) */
-const rotation = computed(() => `rotate(135 ${centre.value} ${centre.value})`)
-
-const colour = computed(() => riskColour(props.score))
-
-/* Font size scales with the gauge */
-const fontSize = computed(() => Math.round(props.size * 0.36))
+const scaleFactor = computed(() => props.size / presetDimension.value)
 </script>
 
 <template>
-  <svg
-    class="risk-gauge"
-    :width="size"
-    :height="size"
-    :viewBox="`0 0 ${size} ${size}`"
+  <div
+    class="risk-gauge-wrapper"
+    :style="{
+      width: `${size}px`,
+      height: `${size}px`,
+    }"
   >
-    <!-- Track circle -->
-    <circle
-      class="gauge-track"
-      :cx="centre"
-      :cy="centre"
-      :r="radius"
-      fill="none"
-      :stroke-width="2"
-      stroke-linecap="round"
-      :stroke-dasharray="trackDasharray"
-      :transform="rotation"
-    />
-    <!-- Value arc -->
-    <circle
-      class="gauge-value"
-      :cx="centre"
-      :cy="centre"
-      :r="radius"
-      fill="none"
-      :stroke-width="2"
-      stroke-linecap="round"
-      :stroke-dasharray="valueDasharray"
-      :transform="rotation"
-      :style="{ stroke: colour }"
-    />
-    <!-- Centred score text -->
-    <text
-      class="gauge-text"
-      :x="centre"
-      :y="centre"
-      text-anchor="middle"
-      dominant-baseline="central"
-      :style="{ fill: colour, fontSize: `${fontSize}px` }"
+    <div
+      class="risk-gauge-inner"
+      :style="{
+        transform: `scale(${scaleFactor})`,
+        transformOrigin: 'top left',
+      }"
+    >
+      <SGauge
+        :value="gaugeValue"
+        :size="gaugeSize"
+        :variant="gaugeVariant"
+      />
+    </div>
+    <!-- Overlay the raw score (0-10) over SGauge's percentage text -->
+    <span
+      class="risk-gauge-score"
+      :style="{ fontSize: `${Math.round(size * 0.36)}px` }"
     >
       {{ score }}
-    </text>
-  </svg>
+    </span>
+  </div>
 </template>
 
 <style scoped>
-.risk-gauge {
-  display: inline-block;
+.risk-gauge-wrapper {
+  display: inline-flex;
+  position: relative;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.gauge-track {
-  stroke: var(--color-risk-gauge-track);
+.risk-gauge-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
-.gauge-value {
-  transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;
+/* Hide SGauge's built-in percentage text so we can show the 0-10 score instead */
+.risk-gauge-inner :deep(svg text) {
+  display: none;
 }
 
-.gauge-text {
+/* Hide SGauge's optional label span */
+.risk-gauge-inner :deep(> span) {
+  display: none;
+}
+
+.risk-gauge-score {
+  position: absolute;
   font-family: var(--font-mono);
   font-weight: 700;
+  color: var(--color-text-primary);
+  pointer-events: none;
+  z-index: 1;
 }
 </style>

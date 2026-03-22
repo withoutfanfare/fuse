@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { SButton, SBadge, SListRow, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
+import { SButton, SIconButton, SBadge, SListRow, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
 import type { CiCheck } from '../types'
 
 const props = defineProps<{
@@ -45,25 +45,31 @@ async function openDetails(url: string | null) {
 
 <template>
   <div class="ci-panel">
-    <button class="ci-panel-header" @click="expanded = !expanded">
+    <div class="ci-panel-header" role="button" tabindex="0" @click="expanded = !expanded" @keydown.enter="expanded = !expanded" @keydown.space.prevent="expanded = !expanded">
       <SSectionHeader title="CI/CD Status" />
       <div class="header-right">
         <span v-if="lastFetchedLabel" class="last-fetched">{{ lastFetchedLabel }}</span>
-        <SButton
-          variant="icon"
+        <SIconButton
+          variant="ghost"
           size="sm"
-          title="Refresh CI checks"
-          aria-label="Refresh CI checks"
+          tooltip="Refresh CI checks"
           @click.stop="emit('refresh')"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10" />
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </svg>
-        </SButton>
-        <span class="toggle-icon">{{ expanded ? '\u25B2' : '\u25BC' }}</span>
+        </SIconButton>
+        <SIconButton
+          variant="ghost"
+          size="sm"
+          :tooltip="expanded ? 'Collapse' : 'Expand'"
+          @click.stop="expanded = !expanded"
+        >
+          <span class="toggle-icon">{{ expanded ? '\u25B2' : '\u25BC' }}</span>
+        </SIconButton>
       </div>
-    </button>
+    </div>
 
     <div v-if="expanded" class="ci-panel-body">
       <SEmptyState
@@ -108,8 +114,6 @@ async function openDetails(url: string | null) {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  background: none;
-  border: none;
   padding: var(--space-4) var(--space-5);
   cursor: pointer;
   transition: background var(--transition-fast);

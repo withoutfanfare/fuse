@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { SButton, SCard, SBadge, SEmptyState } from '@stuntrocket/ui'
+import { SButton, SCard, SBadge, SEmptyState, SSectionHeader } from '@stuntrocket/ui'
 import { usePullRequestsStore } from '../stores/pullRequests'
 import { useToastStore } from '../stores/toast'
 import { useConfirm } from '@stuntrocket/ui'
@@ -58,12 +58,10 @@ function openDetail(id: number) {
 </script>
 
 <template>
-  <section class="stale-section">
+  <SCard variant="content" class="stale-section">
     <div class="stale-header">
-      <h2 class="section-title">
-        Stale Pull Requests
-        <SBadge v-if="!loading && count > 0" variant="warning">{{ count }}</SBadge>
-      </h2>
+      <SSectionHeader title="Stale Pull Requests" />
+      <SBadge v-if="!loading && count > 0" variant="warning">{{ count }}</SBadge>
     </div>
 
     <ContentLoader v-if="props.loading" variant="list" :count="2" />
@@ -78,7 +76,7 @@ function openDetail(id: number) {
       <SCard
         v-for="pr in props.stalePrs"
         :key="pr.id"
-        variant="content"
+        variant="list"
         hoverable
         class="stale-card"
       >
@@ -105,37 +103,32 @@ function openDetail(id: number) {
         </SButton>
       </SCard>
     </div>
-  </section>
+  </SCard>
 </template>
 
 <style scoped>
-.stale-section {
-  margin-top: var(--space-8);
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
 }
 
 .stale-header {
-  margin-bottom: var(--space-4);
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .stale-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .stale-card {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-2);
 }
 
 .stale-card-main {
@@ -158,10 +151,10 @@ function openDetail(id: number) {
 }
 
 .stale-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
-  line-height: 1.4;
+  line-height: 1.35;
   margin-bottom: var(--space-1);
   white-space: nowrap;
   overflow: hidden;
@@ -172,7 +165,7 @@ function openDetail(id: number) {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted);
 }
 

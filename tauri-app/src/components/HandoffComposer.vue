@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { SButton, SInput, STextarea, SCard, SCheckbox, SBadge, SSpinner, SEmptyState } from '@stuntrocket/ui'
+import { SButton, SIconButton, SInput, STextarea, SCard, SCheckbox, SBadge, SSpinner, SEmptyState } from '@stuntrocket/ui'
 import { useHandoffNotes } from '../composables/useHandoffNotes'
 import { useToastStore } from '../stores/toast'
 
@@ -88,11 +88,18 @@ function formatDate(dateStr: string): string {
 
 <template>
   <section class="handoff-panel">
-    <button class="handoff-toggle" @click="expanded = !expanded">
+    <div class="handoff-toggle" role="button" tabindex="0" @click="expanded = !expanded" @keydown.enter="expanded = !expanded" @keydown.space.prevent="expanded = !expanded">
       <h2 class="section-title">Review Handoffs</h2>
       <SBadge v-if="handoffs.length > 0" variant="warning">{{ handoffs.length }}</SBadge>
-      <span class="toggle-icon" :class="{ expanded }">&#9656;</span>
-    </button>
+      <SIconButton
+        variant="ghost"
+        size="sm"
+        :tooltip="expanded ? 'Collapse' : 'Expand'"
+        @click.stop="expanded = !expanded"
+      >
+        <span class="toggle-icon" :class="{ expanded }">&#9656;</span>
+      </SIconButton>
+    </div>
 
     <div v-if="expanded" class="handoff-content">
       <div v-if="loading" class="handoff-loading">
@@ -242,8 +249,6 @@ function formatDate(dateStr: string): string {
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-5);
-  background: none;
-  border: none;
   cursor: pointer;
   color: inherit;
   text-align: left;
@@ -253,6 +258,13 @@ function formatDate(dateStr: string): string {
 
 .handoff-toggle:hover {
   background: rgba(255, 255, 255, 0.02);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
 }
 
 .handoff-toggle .section-title {

@@ -43,9 +43,9 @@ const badgeVariant = computed(() => {
 
 /** Map CI status to SStatusDot variant. */
 const dotVariant = computed(() => {
-  const variantMap: Record<string, 'success' | 'error' | 'warning'> = {
+  const variantMap: Record<string, 'success' | 'danger' | 'warning'> = {
     pass: 'success',
-    fail: 'error',
+    fail: 'danger',
     pending: 'warning',
   }
   return variantMap[overallStatus.value]

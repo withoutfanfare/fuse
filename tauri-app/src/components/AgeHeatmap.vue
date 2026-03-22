@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { SCard } from '@stuntrocket/ui'
+import { SCard, SSectionHeader } from '@stuntrocket/ui'
 import type { AgeBucket } from '../types'
 
 const props = defineProps<{
@@ -23,7 +23,8 @@ function getColour(label: string): string {
 </script>
 
 <template>
-  <SCard variant="content">
+  <SCard variant="content" class="age-heatmap-card">
+    <SSectionHeader title="PR Age Distribution" />
     <div class="age-heatmap">
       <div
         v-for="bucket in buckets"
@@ -47,22 +48,27 @@ function getColour(label: string): string {
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .age-heatmap {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .heatmap-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .heatmap-label {
-  width: 80px;
+  width: 70px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 11px;
   color: var(--color-text-secondary);
   text-align: right;
   font-weight: 500;
@@ -70,7 +76,7 @@ function getColour(label: string): string {
 
 .heatmap-bar-track {
   flex: 1;
-  height: 20px;
+  height: 10px;
   background: rgba(255, 255, 255, 0.04);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -85,9 +91,9 @@ function getColour(label: string): string {
 }
 
 .heatmap-count {
-  width: 36px;
+  width: 30px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   font-family: var(--font-mono);
   text-align: right;

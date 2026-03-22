@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { SCard, SIconButton } from '@stuntrocket/ui'
+import { SCard, SIconButton, SInput } from '@stuntrocket/ui'
 import { RefreshCw, X, Pencil } from 'lucide-vue-next'
 import type { Repository, RepoGroup } from '../types'
 
@@ -20,14 +20,15 @@ const emit = defineEmits<{
 // Inline branch editing state
 const editingBranch = ref(false)
 const editBranchValue = ref('')
-const branchInput = ref<HTMLInputElement | null>(null)
+const branchInput = ref<InstanceType<typeof SInput> | null>(null)
 
 function startEditBranch() {
   editBranchValue.value = props.repo.default_branch
   editingBranch.value = true
   nextTick(() => {
-    branchInput.value?.focus()
-    branchInput.value?.select()
+    const input = branchInput.value?.$el?.querySelector('input') as HTMLInputElement | null
+    input?.focus()
+    input?.select()
   })
 }
 
@@ -82,9 +83,10 @@ function onBranchKeydown(event: KeyboardEvent) {
       <span class="meta-item branch-meta">
         Branch:
         <template v-if="editingBranch">
-          <input
+          <SInput
             ref="branchInput"
             v-model="editBranchValue"
+            size="sm"
             class="branch-edit-input"
             @keydown="onBranchKeydown"
             @blur="saveBranch"
@@ -197,16 +199,6 @@ function onBranchKeydown(event: KeyboardEvent) {
 }
 
 .branch-edit-input {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-focus);
-  border-radius: var(--radius-sm);
-  padding: 1px var(--space-2);
-  color: var(--color-text-primary);
   width: 120px;
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 </style>

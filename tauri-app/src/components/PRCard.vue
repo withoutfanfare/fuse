@@ -51,7 +51,7 @@ const repoDisplay = computed(() => {
     @click="emit('open-detail', pr.id)"
   >
     <div class="pr-card-header">
-      <RiskGauge :score="riskScore" :size="36" />
+      <RiskGauge :score="riskScore" :size="28" />
       <span class="pr-number">#{{ pr.number }}</span>
       <span v-if="pr.is_draft" class="draft-badge">Draft</span>
       <span
@@ -81,6 +81,11 @@ const repoDisplay = computed(() => {
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .pr-card {
   cursor: pointer;
 }
@@ -88,13 +93,13 @@ const repoDisplay = computed(() => {
 .pr-card-header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
 }
 
 .pr-number {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 11px;
   color: var(--color-text-muted);
 }
 
@@ -107,16 +112,16 @@ const repoDisplay = computed(() => {
 }
 
 .pr-title {
-  font-size: var(--text-body-size);
+  font-size: 13px;
   font-weight: var(--text-subheading-weight);
   letter-spacing: var(--text-body-tracking);
-  line-height: var(--text-subheading-leading);
-  margin-bottom: var(--space-2);
+  line-height: 1.35;
+  margin-bottom: var(--space-1);
   color: var(--color-text-primary);
 }
 
 .pr-meta {
-  font-size: var(--text-caption-size);
+  font-size: 11px;
   font-weight: var(--text-caption-weight);
   letter-spacing: var(--text-caption-tracking);
   color: var(--color-text-muted);
@@ -158,8 +163,8 @@ const repoDisplay = computed(() => {
 
 .pr-review-badge {
   display: inline-block;
-  margin-top: var(--space-2);
-  font-size: 11px;
+  margin-top: var(--space-1);
+  font-size: 10px;
   font-weight: 600;
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);

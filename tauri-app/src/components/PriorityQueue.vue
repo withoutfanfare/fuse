@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { SButton, SCard, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
+import { SButton, SCard, SSectionHeader, SEmptyState, SBadge } from '@stuntrocket/ui'
 import type { PriorityQueueItem } from '../types'
 import AuthorAvatar from './AuthorAvatar.vue'
 import ContentLoader from './ContentLoader.vue'
@@ -69,14 +69,13 @@ function scoreColour(score: number): string {
           <span class="next-number">#{{ queue[0].pr.number }}</span>
         </div>
         <div class="next-factors">
-          <span
+          <SBadge
             v-for="(factor, i) in queue[0].factors"
             :key="i"
-            class="factor-chip"
-            :class="{ negative: factor.points < 0 }"
+            :variant="factor.points < 0 ? 'default' : 'accent'"
           >
             {{ factor.label }} ({{ factor.points > 0 ? '+' : '' }}{{ factor.points.toFixed(1) }})
-          </span>
+          </SBadge>
         </div>
       </div>
       <div class="next-score" :style="{ color: scoreColour(queue[0].priority_score) }">
@@ -122,6 +121,11 @@ function scoreColour(score: number): string {
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .priority-queue {
   width: 100%;
 }
@@ -130,7 +134,7 @@ function scoreColour(score: number): string {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .queue-error {
@@ -142,9 +146,9 @@ function scoreColour(score: number): string {
 .next-review-card {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: var(--space-2);
   cursor: pointer;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .next-label {
@@ -200,25 +204,12 @@ function scoreColour(score: number): string {
   gap: var(--space-1);
 }
 
-.factor-chip {
-  font-size: 10px;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-  background: rgba(20, 184, 166, 0.1);
-  color: var(--color-text-secondary);
-}
-
-.factor-chip.negative {
-  background: rgba(100, 116, 139, 0.15);
-  color: var(--color-text-muted);
-}
-
 .next-score {
-  font-size: 22px;
+  font-size: 14px;
   font-weight: 700;
   font-family: var(--font-mono);
   white-space: nowrap;
-  min-width: 48px;
+  min-width: 40px;
   text-align: right;
 }
 
@@ -231,15 +222,15 @@ function scoreColour(score: number): string {
 .queue-item {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   cursor: pointer;
 }
 
 .queue-item-score {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   font-family: var(--font-mono);
-  min-width: 40px;
+  min-width: 36px;
   text-align: center;
 }
 
@@ -285,4 +276,5 @@ function scoreColour(score: number): string {
 .factor-count {
   font-style: italic;
 }
+
 </style>

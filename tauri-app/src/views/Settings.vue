@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useDensity } from '../composables/useDensity'
 import { useTheme, ACCENT_PRESETS } from '../composables/useTheme'
+import { SCard, SSectionHeader } from '@stuntrocket/ui'
 import TemplateManager from '../components/TemplateManager.vue'
 import LabelRulesManager from '../components/LabelRulesManager.vue'
 
@@ -115,9 +116,9 @@ async function saveSettings() {
 
 <template>
   <div class="settings-view">
-    <h2 class="section-title">Settings</h2>
+    <SSectionHeader title="Settings" />
 
-    <div class="settings-card">
+    <SCard variant="content" class="settings-card">
       <div class="setting-row">
         <div class="setting-info">
           <label class="setting-label">Sync Interval</label>
@@ -282,7 +283,7 @@ async function saveSettings() {
           </button>
         </div>
       </div>
-    </div>
+    </SCard>
 
     <div class="settings-actions">
       <button class="btn-save" @click="saveSettings">
@@ -298,11 +299,11 @@ async function saveSettings() {
       <LabelRulesManager />
     </div>
 
-    <section class="about-section">
+    <SCard variant="content" class="about-section">
       <h3 class="about-title">About</h3>
       <p class="about-text">Fuse v0.1.0</p>
       <p class="about-text">A desktop app for triaging, briefing, and reviewing GitHub pull requests.</p>
-    </section>
+    </SCard>
   </div>
 </template>
 
@@ -311,20 +312,7 @@ async function saveSettings() {
   width: 100%;
 }
 
-.section-title {
-  font-size: var(--text-heading-size);
-  font-weight: var(--text-heading-weight);
-  letter-spacing: var(--text-heading-tracking);
-  line-height: var(--text-heading-leading);
-  margin-bottom: var(--space-6);
-  color: var(--color-text-primary);
-}
-
 .settings-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
   overflow: hidden;
   margin-bottom: var(--space-6);
 }
@@ -415,22 +403,6 @@ async function saveSettings() {
   color: var(--color-text-secondary);
 }
 
-.input-select {
-  min-width: 120px;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  transition: border-color var(--transition-fast);
-}
-
-.input-select:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
 
 .unit {
   font-size: 13px;
@@ -475,10 +447,6 @@ async function saveSettings() {
 
 .about-section {
   padding: var(--space-5);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
 }
 
 .about-title {

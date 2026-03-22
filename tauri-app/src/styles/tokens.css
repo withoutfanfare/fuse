@@ -76,12 +76,9 @@
   --color-pipeline-track: rgba(255, 255, 255, 0.06);
   --color-pipeline-complete: var(--color-accent);
 
-  /* Shadows — three-tier system */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+  /* Shadows — Fuse-specific additions (library provides --shadow-sm/md/lg/xl/overlay) */
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.18), inset 0 1px 0 0 rgb(255 255 255 / 0.04);
   --shadow-panel: 0 4px 12px -2px rgb(0 0 0 / 0.3), 0 2px 4px -1px rgb(0 0 0 / 0.2);
-  --shadow-overlay: 0 8px 24px -4px rgb(0 0 0 / 0.5), 0 4px 8px -2px rgb(0 0 0 / 0.3);
-  --shadow-scroll: 0 2px 8px rgba(0, 0, 0, 0.3);
 
   /* Typographic scale — display through caption */
   --text-display-size: 48px;
@@ -109,35 +106,19 @@
   --text-caption-tracking: 0.01em;
   --text-caption-leading: 1.4;
 
-  /* Typography */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Typography — Poppins is set by @stuntrocket/ui tokens; only override mono */
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
 
-  /* Spacing */
+  /* Spacing — extends library scale with half-step values */
   --space-0-5: 2px;
-  --space-1: 4px;
   --space-1-5: 6px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
   --space-12: 48px;
 
-  /* Radii */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-full: 9999px;
-
-  /* Sidebar */
+  /* Sidebar — Fuse-specific widths */
   --sidebar-width: 224px;
   --sidebar-width-collapsed: 56px;
 
-  /* Transitions */
+  /* Transitions — legacy aliases (prefer --duration-fast / --duration-normal from library) */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -216,59 +197,28 @@
   /* Pipeline */
   --color-pipeline-track: rgba(0, 0, 0, 0.06);
 
-  /* Shadows — lighter, less opaque */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06);
+  /* Shadows — Fuse-specific light mode additions */
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.08), inset 0 1px 0 0 rgb(255 255 255 / 0.6);
   --shadow-panel: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
-  --shadow-overlay: 0 8px 24px -4px rgb(0 0 0 / 0.15), 0 4px 8px -2px rgb(0 0 0 / 0.08);
-  --shadow-scroll: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* Light-mode blob colours — softer pastels */
-[data-theme="light"] .ambient-blob--1 {
-  background: #f0abfc; /* soft magenta */
-}
-
-[data-theme="light"] .ambient-blob--2 {
-  background: #a5b4fc; /* soft indigo */
-}
-
-[data-theme="light"] .ambient-blob--3 {
-  background: #5eead4; /* soft teal */
-}
-
-/* Light-mode scrollbar */
-[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--grey-400) 40%, transparent);
-}
-
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--grey-500) 50%, transparent);
 }
 
 /* -------------------------------------------------------
-   Focus Mode — hides sidebar and header, expands content
+   Focus Mode — hides sidebar and topbar, expands content
    to near-full-width for distraction-free review.
    Applied via .focus-active class on .app-layout (set by
    the useFocusMode composable).
    ------------------------------------------------------- */
 .app-layout.focus-active {
   --sidebar-width: 0;
+  padding-top: 0;
 }
 
-.app-layout.focus-active .sidebar {
-  width: 0;
+.app-layout.focus-active .sidebar-shell {
+  width: 0 !important;
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
   transition: width var(--transition-normal), opacity var(--transition-normal);
-}
-
-.app-layout.focus-active .app-header {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform var(--transition-normal), opacity var(--transition-normal);
 }
 
 /* -------------------------------------------------------

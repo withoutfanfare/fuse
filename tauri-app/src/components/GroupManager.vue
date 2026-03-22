@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { X, Plus } from 'lucide-vue-next'
-import { SCard, SButton, SInput, SIconButton } from '@stuntrocket/ui'
+import { SCard, SButton, SInput, SIconButton, SEmptyState, SSectionHeader } from '@stuntrocket/ui'
 import { useGroupsStore } from '../stores/groups'
 import { useRepositoriesStore } from '../stores/repositories'
 import { useConfirm } from '@stuntrocket/ui'
@@ -54,7 +54,7 @@ async function toggleRepo(groupId: number, repoId: number) {
 
 <template>
   <SCard variant="content">
-    <h2 class="section-title">Repository Groups</h2>
+    <SSectionHeader title="Repository Groups" />
 
     <form class="create-group-form" @submit.prevent="createGroup">
       <SInput
@@ -72,15 +72,17 @@ async function toggleRepo(groupId: number, repoId: number) {
           @click="selectedColour = c"
         />
       </div>
-      <SButton variant="primary" size="sm" :disabled="creating" @click="createGroup">
+      <SButton type="submit" variant="primary" size="sm" :disabled="creating">
         <Plus :size="14" />
         {{ creating ? 'Creating...' : 'Create' }}
       </SButton>
     </form>
 
-    <div v-if="groupsStore.groups.length === 0" class="empty-groups">
-      No groups yet. Create one above to organise your repositories.
-    </div>
+    <SEmptyState
+      v-if="groupsStore.groups.length === 0"
+      title="No groups"
+      description="No groups yet. Create one above to organise your repositories."
+    />
 
     <div v-else class="groups-list">
       <SCard
@@ -115,12 +117,6 @@ async function toggleRepo(groupId: number, repoId: number) {
 </template>
 
 <style scoped>
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: var(--space-4);
-  color: var(--color-text-primary);
-}
 
 .create-group-form {
   display: flex;
@@ -155,11 +151,6 @@ async function toggleRepo(groupId: number, repoId: number) {
   box-shadow: 0 0 0 2px var(--color-surface-base);
 }
 
-.empty-groups {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-4) 0;
-}
 
 .groups-list {
   display: flex;

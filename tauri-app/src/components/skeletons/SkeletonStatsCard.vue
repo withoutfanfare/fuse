@@ -4,8 +4,8 @@ import { SSkeleton } from '@stuntrocket/ui'
 
 <template>
   <div class="skeleton-stats-card">
-    <SSkeleton width="64px" height="32px" />
-    <SSkeleton width="96px" height="14px" />
+    <SSkeleton width="48px" height="22px" />
+    <SSkeleton width="72px" height="12px" />
   </div>
 </template>
 
@@ -15,10 +15,10 @@ import { SSkeleton } from '@stuntrocket/ui'
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 </style>

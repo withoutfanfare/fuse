@@ -99,11 +99,11 @@ function updatePlaceholder() {
           />
         </SFormField>
         <SFormField label="Action">
-          <SSelect
-            v-model="newActionType"
-            :options="actionSelectOptions"
-            @update:model-value="updatePlaceholder"
-          />
+          <SSelect v-model="newActionType" @update:model-value="updatePlaceholder">
+            <option v-for="opt in actionSelectOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </SSelect>
         </SFormField>
         <SFormField label="Configuration" class="form-field-config">
           <SInput
@@ -143,7 +143,7 @@ function updatePlaceholder() {
         <div class="rule-toggle">
           <SToggle
             :model-value="rule.enabled"
-            @update:model-value="handleToggle(rule.id, !rule.enabled)"
+            @update:model-value="handleToggle(rule.id, $event)"
           />
         </div>
         <div class="rule-body">

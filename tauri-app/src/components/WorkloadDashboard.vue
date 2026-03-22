@@ -42,7 +42,7 @@ function barWidth(count: number): string {
 </script>
 
 <template>
-  <div class="workload-dashboard">
+  <SCard variant="content" class="workload-dashboard">
     <div class="workload-header">
       <SSectionHeader title="Reviewer Workload" />
       <SButton variant="secondary" size="sm" @click="emit('refresh')" :disabled="loading" :loading="loading">
@@ -54,7 +54,7 @@ function barWidth(count: number): string {
 
     <ContentLoader v-if="loading" variant="list" :count="3" />
 
-    <SCard v-else-if="workload.length > 0" variant="content">
+    <div v-else-if="workload.length > 0">
       <div class="workload-legend">
         <span class="legend-item">
           <span class="legend-swatch legend-swatch--completed" />
@@ -115,17 +115,22 @@ function barWidth(count: number): string {
           </div>
         </div>
       </div>
-    </SCard>
+    </div>
 
     <SEmptyState
-      v-else-if="workload.length === 0"
+      v-else
       title="No data"
       description="No reviewer workload data yet. Sync your repositories to populate reviewer assignments."
     />
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
+:deep(.py-12) {
+  padding-top: var(--space-4) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
 .workload-dashboard {
   width: 100%;
 }
@@ -134,7 +139,7 @@ function barWidth(count: number): string {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .workload-error {
@@ -145,8 +150,8 @@ function barWidth(count: number): string {
 
 .workload-legend {
   display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-3);
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -159,8 +164,8 @@ function barWidth(count: number): string {
 }
 
 .legend-swatch {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--radius-sm);
   display: inline-block;
 }
@@ -180,25 +185,25 @@ function barWidth(count: number): string {
 .workload-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .workload-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .reviewer-info {
-  min-width: 140px;
-  max-width: 140px;
+  min-width: 120px;
+  max-width: 120px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .reviewer-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -222,7 +227,7 @@ function barWidth(count: number): string {
 .bar-track {
   flex: 1;
   display: flex;
-  height: 20px;
+  height: 10px;
   background: rgba(255, 255, 255, 0.04);
   border-radius: var(--radius-sm);
   overflow: hidden;

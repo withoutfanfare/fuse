@@ -203,14 +203,12 @@ function openDetail(id: number) {
     </template>
 
     <template v-else>
-      <section class="priority-section">
-        <PriorityQueue
-          :queue="priorityQueue"
-          :loading="priorityLoading"
-          :error="priorityError"
-          @refresh="refreshPriorityQueue"
-        />
-      </section>
+      <PriorityQueue
+        :queue="priorityQueue"
+        :loading="priorityLoading"
+        :error="priorityError"
+        @refresh="refreshPriorityQueue"
+      />
 
       <section class="urgent-section">
         <h2 class="section-title">Needs Attention</h2>
@@ -227,11 +225,11 @@ function openDetail(id: number) {
           title="All caught up"
           description="No pull requests need your attention right now. Time to ship."
         >
-          <template #icon><CheckCircle :size="36" /></template>
+          <template #icon><CheckCircle :size="24" /></template>
         </SEmptyState>
       </section>
 
-      <section class="dependency-section">
+      <div class="panel-grid">
         <DependencyGraph
           :nodes="depNodes"
           :edges="depEdges"
@@ -239,35 +237,23 @@ function openDetail(id: number) {
           :error="depError"
           @refresh="refreshDependencies"
         />
-      </section>
+        <WorkloadDashboard
+          :workload="workloadData"
+          :loading="workloadLoading"
+          :error="workloadError"
+          @refresh="refreshWorkload"
+        />
+      </div>
 
-      <section class="workload-section">
-        <div class="analytics-card">
-          <WorkloadDashboard
-            :workload="workloadData"
-            :loading="workloadLoading"
-            :error="workloadError"
-            @refresh="refreshWorkload"
-          />
-        </div>
-      </section>
+      <div class="panel-grid">
+        <AgeHeatmap :buckets="ageBuckets" />
+        <VelocityChart :data="velocityData" />
+      </div>
 
-      <section class="analytics-grid">
-        <div class="analytics-card">
-          <h2 class="section-title">PR Age Distribution</h2>
-          <AgeHeatmap :buckets="ageBuckets" />
-        </div>
-        <div class="analytics-card">
-          <h2 class="section-title">Review Velocity</h2>
-          <VelocityChart :data="velocityData" />
-        </div>
-      </section>
-
-      <StalePrSection :stale-prs="stalePrs" :loading="staleLoading" @update:stale-prs="stalePrs = $event" />
-
-      <section class="review-time-section">
+      <div class="panel-grid">
+        <StalePrSection :stale-prs="stalePrs" :loading="staleLoading" @update:stale-prs="stalePrs = $event" />
         <ReviewTimeDashboard />
-      </section>
+      </div>
     </template>
   </div>
 </template>
@@ -275,63 +261,43 @@ function openDetail(id: number) {
 <style scoped>
 .dashboard {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .stats-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  gap: var(--space-2);
 }
 
 .section-title {
-  font-size: var(--text-heading-size);
-  font-weight: var(--text-heading-weight);
-  letter-spacing: var(--text-heading-tracking);
-  line-height: var(--text-heading-leading);
-  margin-bottom: var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
   color: var(--color-text-primary);
 }
 
-.priority-section {
-  margin-bottom: var(--space-5);
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.panel-grid > * {
+  min-height: 0;
+}
+
+.urgent-section {
+  margin-top: var(--space-4);
 }
 
 .urgent-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-3);
-}
-
-.dependency-section {
-  margin-top: var(--space-5);
-  margin-bottom: var(--space-5);
-}
-
-.workload-section {
-  margin-top: var(--space-5);
-  margin-bottom: var(--space-5);
-}
-
-.analytics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-  margin-bottom: var(--space-5);
-}
-
-.analytics-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
-}
-
-.review-time-section {
-  margin-top: var(--space-5);
-  margin-bottom: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-2);
 }
 
 </style>
