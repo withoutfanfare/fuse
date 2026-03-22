@@ -10,7 +10,7 @@ import { usePullRequestsStore } from '../stores/pullRequests'
 import RiskGauge from './RiskGauge.vue'
 import SizeBar from './SizeBar.vue'
 import AuthorAvatar from './AuthorAvatar.vue'
-import { SEmptyState } from '@stuntrocket/ui'
+import { SEmptyState, SIconButton } from '@stuntrocket/ui'
 import SkeletonPRTableRow from './skeletons/SkeletonPRTableRow.vue'
 import PRHoverPreview from './PRHoverPreview.vue'
 import QuickStatusPopover from './QuickStatusPopover.vue'
@@ -354,14 +354,14 @@ async function handleQuickBookmark(prId: number, event: MouseEvent) {
               </span>
             </td>
             <td class="col-bookmark" @click.stop>
-              <button
-                class="bookmark-quick-btn"
+              <SIconButton
+                size="sm"
                 :class="{ 'bookmark-active': bookmarkedPrIds.has(pr.id) }"
                 :title="bookmarkedPrIds.has(pr.id) ? 'PR has bookmarks' : 'Quick bookmark this PR'"
                 @click="handleQuickBookmark(pr.id, $event)"
               >
                 <component :is="bookmarkedPrIds.has(pr.id) ? BookmarkCheck : Bookmark" :size="14" />
-              </button>
+              </SIconButton>
             </td>
           </tr>
         </template>
@@ -642,26 +642,7 @@ async function handleQuickBookmark(prId: number, event: MouseEvent) {
   text-align: center;
 }
 
-.bookmark-quick-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
-
-.bookmark-quick-btn:hover {
-  color: var(--color-accent);
-  background: rgba(20, 184, 166, 0.1);
-}
-
-.bookmark-quick-btn.bookmark-active {
+.bookmark-active {
   color: var(--color-accent);
 }
-
 </style>

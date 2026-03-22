@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { SCard } from '@stuntrocket/ui'
 import type { VelocityPoint } from '../types'
 
 const props = defineProps<{
@@ -98,96 +99,98 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="velocity-chart-container">
-    <svg
-      :width="chartWidth"
-      :height="chartHeight"
-      :viewBox="`0 0 ${chartWidth} ${chartHeight}`"
-      class="velocity-chart"
-    >
-      <defs>
-        <linearGradient id="vel-reviewed-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--color-accent)" stop-opacity="0.25" />
-          <stop offset="100%" stop-color="var(--color-accent)" stop-opacity="0" />
-        </linearGradient>
-        <linearGradient id="vel-merged-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--color-status-success)" stop-opacity="0.2" />
-          <stop offset="100%" stop-color="var(--color-status-success)" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-
-      <!-- Grid lines -->
-      <line
-        v-for="tick in yTicks"
-        :key="`grid-${tick}`"
-        :x1="padding.left"
-        :x2="chartWidth - padding.right"
-        :y1="yScale(tick)"
-        :y2="yScale(tick)"
-        stroke="rgba(255,255,255,0.06)"
-        stroke-width="1"
-      />
-
-      <!-- Y-axis labels -->
-      <text
-        v-for="tick in yTicks"
-        :key="`ylabel-${tick}`"
-        :x="padding.left - 8"
-        :y="yScale(tick) + 4"
-        text-anchor="end"
-        class="axis-label"
+  <SCard variant="content">
+    <div ref="containerRef" class="velocity-chart-container">
+      <svg
+        :width="chartWidth"
+        :height="chartHeight"
+        :viewBox="`0 0 ${chartWidth} ${chartHeight}`"
+        class="velocity-chart"
       >
-        {{ tick }}
-      </text>
+        <defs>
+          <linearGradient id="vel-reviewed-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--color-accent)" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="var(--color-accent)" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="vel-merged-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--color-status-success)" stop-opacity="0.2" />
+            <stop offset="100%" stop-color="var(--color-status-success)" stop-opacity="0" />
+          </linearGradient>
+        </defs>
 
-      <!-- X-axis labels -->
-      <text
-        v-for="lbl in xLabels"
-        :key="lbl.label"
-        :x="lbl.x"
-        :y="chartHeight - 8"
-        text-anchor="middle"
-        class="axis-label"
-      >
-        {{ lbl.label }}
-      </text>
+        <!-- Grid lines -->
+        <line
+          v-for="tick in yTicks"
+          :key="`grid-${tick}`"
+          :x1="padding.left"
+          :x2="chartWidth - padding.right"
+          :y1="yScale(tick)"
+          :y2="yScale(tick)"
+          stroke="rgba(255,255,255,0.06)"
+          stroke-width="1"
+        />
 
-      <!-- Area fills -->
-      <path v-if="reviewedArea" :d="reviewedArea" fill="url(#vel-reviewed-grad)" />
-      <path v-if="mergedArea" :d="mergedArea" fill="url(#vel-merged-grad)" />
+        <!-- Y-axis labels -->
+        <text
+          v-for="tick in yTicks"
+          :key="`ylabel-${tick}`"
+          :x="padding.left - 8"
+          :y="yScale(tick) + 4"
+          text-anchor="end"
+          class="axis-label"
+        >
+          {{ tick }}
+        </text>
 
-      <!-- Lines -->
-      <path
-        v-if="reviewedLine"
-        :d="reviewedLine"
-        fill="none"
-        stroke="var(--color-accent)"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-      <path
-        v-if="mergedLine"
-        :d="mergedLine"
-        fill="none"
-        stroke="var(--color-status-success)"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
+        <!-- X-axis labels -->
+        <text
+          v-for="lbl in xLabels"
+          :key="lbl.label"
+          :x="lbl.x"
+          :y="chartHeight - 8"
+          text-anchor="middle"
+          class="axis-label"
+        >
+          {{ lbl.label }}
+        </text>
 
-    <div class="velocity-legend">
-      <span class="legend-item">
-        <span class="legend-swatch" style="background: var(--color-accent)" />
-        Reviewed
-      </span>
-      <span class="legend-item">
-        <span class="legend-swatch" style="background: var(--color-status-success)" />
-        Merged
-      </span>
+        <!-- Area fills -->
+        <path v-if="reviewedArea" :d="reviewedArea" fill="url(#vel-reviewed-grad)" />
+        <path v-if="mergedArea" :d="mergedArea" fill="url(#vel-merged-grad)" />
+
+        <!-- Lines -->
+        <path
+          v-if="reviewedLine"
+          :d="reviewedLine"
+          fill="none"
+          stroke="var(--color-accent)"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path
+          v-if="mergedLine"
+          :d="mergedLine"
+          fill="none"
+          stroke="var(--color-status-success)"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+
+      <div class="velocity-legend">
+        <span class="legend-item">
+          <span class="legend-swatch" style="background: var(--color-accent)" />
+          Reviewed
+        </span>
+        <span class="legend-item">
+          <span class="legend-swatch" style="background: var(--color-status-success)" />
+          Merged
+        </span>
+      </div>
     </div>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>

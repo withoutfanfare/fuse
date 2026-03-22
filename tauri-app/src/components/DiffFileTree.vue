@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
+import { SListRow, SSectionHeader } from '@stuntrocket/ui'
 import type { DiffFile } from '../types'
 
 const props = defineProps<{
@@ -94,24 +95,27 @@ function isExpanded(node: TreeNode): boolean {
 
 <template>
   <div class="diff-file-tree">
-    <div class="tree-header">Files</div>
+    <SSectionHeader title="Files" />
     <div class="tree-list">
-      <div
+      <SListRow
         v-for="node in flatNodes"
         :key="node.fullPath"
-        class="tree-item"
         :class="{ 'tree-file': node.isFile, 'tree-dir': !node.isFile }"
         :style="{ paddingLeft: `${node.depth * 12 + 8}px` }"
         @click="toggleDir(node)"
       >
-        <span v-if="!node.isFile" class="tree-arrow" :class="{ expanded: isExpanded(node) }">&#9654;</span>
-        <span v-else class="tree-file-icon">&#9675;</span>
-        <span class="tree-name">{{ node.name }}</span>
-        <span class="tree-stats">
-          <span v-if="node.additions > 0" class="tree-add">+{{ node.additions }}</span>
-          <span v-if="node.deletions > 0" class="tree-del">-{{ node.deletions }}</span>
-        </span>
-      </div>
+        <template #default>
+          <span v-if="!node.isFile" class="tree-arrow" :class="{ expanded: isExpanded(node) }">&#9654;</span>
+          <span v-else class="tree-file-icon">&#9675;</span>
+          <span class="tree-name">{{ node.name }}</span>
+        </template>
+        <template #actions>
+          <span class="tree-stats">
+            <span v-if="node.additions > 0" class="tree-add">+{{ node.additions }}</span>
+            <span v-if="node.deletions > 0" class="tree-del">-{{ node.deletions }}</span>
+          </span>
+        </template>
+      </SListRow>
     </div>
   </div>
 </template>
@@ -123,34 +127,9 @@ function isExpanded(node: TreeNode): boolean {
   overflow-y: auto;
 }
 
-.tree-header {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: var(--space-3) var(--space-3) var(--space-2);
-}
-
 .tree-list {
   display: flex;
   flex-direction: column;
-}
-
-.tree-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  font-size: 12px;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
-  white-space: nowrap;
-}
-
-.tree-item:hover {
-  background: var(--color-surface-hover);
 }
 
 .tree-arrow {
@@ -179,6 +158,7 @@ function isExpanded(node: TreeNode): boolean {
   color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 12px;
 }
 
 .tree-file .tree-name {
@@ -186,7 +166,6 @@ function isExpanded(node: TreeNode): boolean {
 }
 
 .tree-stats {
-  margin-left: auto;
   display: flex;
   gap: var(--space-1);
   font-family: var(--font-mono);

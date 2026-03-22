@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Bug, HelpCircle, Lightbulb, AlertOctagon, StickyNote, Check, Trash2 } from 'lucide-vue-next'
+import { SButton, SSelect, STextarea, SBadge, SIconButton, SSpinner } from '@stuntrocket/ui'
 import { useBookmarks } from '../composables/useBookmarks'
 import type { Bookmark, BookmarkCategory } from '../types'
 
@@ -51,6 +52,9 @@ const categoryColours: Record<BookmarkCategory, string> = {
   suggestion: 'var(--color-status-success)',
   blocker: 'var(--color-status-warning)',
 }
+
+/** SSelect options for file picker */
+const fileSelectOptions = props.availableFiles.map(f => ({ value: f, label: f }))
 
 onMounted(() => {
   fetchBookmarks(props.prId)
@@ -122,12 +126,14 @@ defineExpose({ prefillBookmark })
   <section class="bookmarks-panel">
     <button class="bookmarks-toggle" @click="expanded = !expanded">
       <h3 class="bookmarks-title">Bookmarks</h3>
-      <span class="bookmarks-count" v-if="bookmarks.length > 0">{{ bookmarks.length }}</span>
+      <SBadge v-if="bookmarks.length > 0" variant="count">{{ bookmarks.length }}</SBadge>
       <span class="toggle-icon" :class="{ expanded }">&#9656;</span>
     </button>
 
     <div v-if="expanded" class="bookmarks-content">
-      <div v-if="loading" class="bookmarks-loading">Loading bookmarks...</div>
+      <div v-if="loading" class="bookmarks-loading">
+        <SSpinner /> Loading bookmarks...
+      </div>
 
       <div v-else>
         <div v-if="bookmarks.length === 0 && !showAddForm" class="bookmarks-empty">
@@ -154,38 +160,36 @@ defineExpose({ prefillBookmark })
               <span v-if="formatLineRange(bookmark)" class="bookmark-lines">
                 {{ formatLineRange(bookmark) }}
               </span>
-              <button
-                class="bookmark-resolve-btn"
+              <SIconButton
+                size="sm"
                 :title="bookmark.resolved ? 'Mark as unresolved' : 'Mark as resolved'"
                 @click.stop="toggleResolved(bookmark.id)"
               >
                 <Check :size="14" :class="{ 'resolved-check': bookmark.resolved }" />
-              </button>
-              <button
-                class="bookmark-delete"
+              </SIconButton>
+              <SIconButton
+                size="sm"
                 title="Delete bookmark"
                 @click.stop="removeBookmark(bookmark.id)"
               >
                 <Trash2 :size="13" />
-              </button>
+              </SIconButton>
             </div>
 
             <div v-if="editingId === bookmark.id" class="bookmark-edit" @click.stop>
-              <select v-model="editCategory" class="bookmark-category-select">
-                <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              <textarea
+              <SSelect
+                v-model="editCategory"
+                :options="categoryOptions"
+                label="Category"
+              />
+              <STextarea
                 v-model="editNote"
-                class="bookmark-edit-input"
-                rows="2"
                 placeholder="Update note..."
                 @keydown.enter.meta="saveEdit(bookmark)"
               />
               <div class="bookmark-edit-actions">
-                <button class="btn-save-edit" @click="saveEdit(bookmark)">Save</button>
-                <button class="btn-cancel-edit" @click="cancelEdit">Cancel</button>
+                <SButton variant="primary" size="sm" @click="saveEdit(bookmark)">Save</SButton>
+                <SButton variant="secondary" size="sm" @click="cancelEdit">Cancel</SButton>
               </div>
             </div>
             <p v-else class="bookmark-note" @dblclick.stop="startEdit(bookmark)">
@@ -195,16 +199,12 @@ defineExpose({ prefillBookmark })
         </div>
 
         <div v-if="showAddForm" class="bookmark-add-form" @click.stop>
-          <select
+          <SSelect
             v-if="props.availableFiles.length > 0"
             v-model="newFilePath"
-            class="bookmark-input bookmark-file-select"
-          >
-            <option value="" disabled>Select a file…</option>
-            <option v-for="file in props.availableFiles" :key="file" :value="file">
-              {{ file }}
-            </option>
-          </select>
+            :options="fileSelectOptions"
+            placeholder="Select a file..."
+          />
           <input
             v-else
             v-model="newFilePath"
@@ -226,30 +226,30 @@ defineExpose({ prefillBookmark })
               placeholder="End line"
             />
           </div>
-          <select v-model="newCategory" class="bookmark-input bookmark-category-select">
-            <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-          <textarea
+          <SSelect
+            v-model="newCategory"
+            :options="categoryOptions"
+            label="Category"
+          />
+          <STextarea
             v-model="newNote"
-            class="bookmark-input bookmark-note-input"
             placeholder="Note (optional)"
-            rows="2"
           />
           <div class="bookmark-form-actions">
-            <button class="btn-add-bookmark" @click="handleAdd">Add</button>
-            <button class="btn-cancel-bookmark" @click="showAddForm = false">Cancel</button>
+            <SButton variant="primary" size="sm" @click="handleAdd">Add</SButton>
+            <SButton variant="secondary" size="sm" @click="showAddForm = false">Cancel</SButton>
           </div>
         </div>
 
-        <button
+        <SButton
           v-if="!showAddForm"
+          variant="ghost"
+          size="sm"
           class="btn-new-bookmark"
           @click="showAddForm = true"
         >
           + Add Bookmark
-        </button>
+        </SButton>
       </div>
 
       <div v-if="error" class="bookmarks-error">{{ error }}</div>
@@ -293,20 +293,6 @@ defineExpose({ prefillBookmark })
   flex: 1;
 }
 
-.bookmarks-count {
-  background: var(--color-accent-muted);
-  color: var(--color-accent);
-  font-size: 11px;
-  font-weight: 700;
-  min-width: 20px;
-  height: 20px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--space-1);
-}
-
 .toggle-icon {
   font-size: 14px;
   color: var(--color-text-muted);
@@ -328,6 +314,10 @@ defineExpose({ prefillBookmark })
   color: var(--color-text-muted);
   font-size: 13px;
   padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 .bookmarks-list {
@@ -394,42 +384,8 @@ defineExpose({ prefillBookmark })
   flex-shrink: 0;
 }
 
-.bookmark-resolve-btn {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0 2px;
-  line-height: 1;
-  transition: color var(--transition-fast);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-
-.bookmark-resolve-btn:hover {
-  color: var(--color-status-success);
-}
-
 .resolved-check {
   color: var(--color-status-success);
-}
-
-.bookmark-delete {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0 2px;
-  line-height: 1;
-  transition: color var(--transition-fast);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-
-.bookmark-delete:hover {
-  color: var(--color-status-danger);
 }
 
 .bookmark-note {
@@ -450,71 +406,9 @@ defineExpose({ prefillBookmark })
   gap: var(--space-2);
 }
 
-.bookmark-edit-input {
-  width: 100%;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  font-family: var(--font-sans);
-  resize: vertical;
-}
-
-.bookmark-edit-input:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
 .bookmark-edit-actions {
   display: flex;
   gap: var(--space-2);
-}
-
-.btn-save-edit,
-.btn-cancel-edit {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-default);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-save-edit {
-  background: rgba(20, 184, 166, 0.2);
-  color: var(--color-accent);
-  border-color: rgba(20, 184, 166, 0.3);
-}
-
-.btn-save-edit:hover {
-  background: rgba(20, 184, 166, 0.3);
-}
-
-.btn-cancel-edit {
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-}
-
-.btn-cancel-edit:hover {
-  background: var(--color-surface-hover);
-}
-
-.bookmark-category-select {
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-2);
-  color: var(--color-text-primary);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.bookmark-category-select:focus {
-  border-color: var(--color-border-focus);
-  outline: none;
 }
 
 .bookmark-add-form {
@@ -546,12 +440,6 @@ defineExpose({ prefillBookmark })
   outline: none;
 }
 
-.bookmark-file-select {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  cursor: pointer;
-}
-
 .bookmark-line-inputs {
   display: flex;
   gap: var(--space-2);
@@ -561,63 +449,14 @@ defineExpose({ prefillBookmark })
   flex: 1;
 }
 
-.bookmark-note-input {
-  resize: vertical;
-  min-height: 40px;
-}
-
 .bookmark-form-actions {
   display: flex;
   gap: var(--space-2);
 }
 
-.btn-add-bookmark {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  background: rgba(20, 184, 166, 0.2);
-  color: var(--color-accent);
-  border: 1px solid rgba(20, 184, 166, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-add-bookmark:hover {
-  background: rgba(20, 184, 166, 0.3);
-}
-
-.btn-cancel-bookmark {
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border-default);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-cancel-bookmark:hover {
-  background: var(--color-surface-hover);
-}
-
 .btn-new-bookmark {
   width: 100%;
   margin-top: var(--space-3);
-  padding: var(--space-2);
-  background: none;
-  border: 1px dashed var(--color-border-default);
-  border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-new-bookmark:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: rgba(20, 184, 166, 0.05);
 }
 
 .bookmarks-error {

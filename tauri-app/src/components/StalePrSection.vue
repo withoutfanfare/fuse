@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { SButton, SCard, SBadge, SEmptyState } from '@stuntrocket/ui'
 import { usePullRequestsStore } from '../stores/pullRequests'
 import { useToastStore } from '../stores/toast'
 import { useConfirm } from '@stuntrocket/ui'
@@ -61,26 +62,30 @@ function openDetail(id: number) {
     <div class="stale-header">
       <h2 class="section-title">
         Stale Pull Requests
-        <span v-if="!loading && count > 0" class="stale-count">{{ count }}</span>
+        <SBadge v-if="!loading && count > 0" variant="warning">{{ count }}</SBadge>
       </h2>
     </div>
 
     <ContentLoader v-if="props.loading" variant="list" :count="2" />
 
-    <div v-else-if="props.stalePrs.length === 0" class="stale-empty">
-      No stale pull requests. Everything is up to date.
-    </div>
+    <SEmptyState
+      v-else-if="props.stalePrs.length === 0"
+      title="All clear"
+      description="No stale pull requests. Everything is up to date."
+    />
 
     <div v-else class="stale-list">
-      <div
+      <SCard
         v-for="pr in props.stalePrs"
         :key="pr.id"
+        variant="content"
+        hoverable
         class="stale-card"
       >
         <div class="stale-card-main" @click="openDetail(pr.id)">
           <div class="stale-card-top">
             <span class="pr-number">#{{ pr.number }}</span>
-            <span class="stale-age">{{ ageInDays(pr.updated_at) }} days stale</span>
+            <SBadge variant="warning">{{ ageInDays(pr.updated_at) }} days stale</SBadge>
           </div>
           <div class="stale-title">{{ pr.title }}</div>
           <div class="stale-meta">
@@ -89,14 +94,16 @@ function openDetail(id: number) {
             <span class="stale-branch">{{ pr.head_branch }}</span>
           </div>
         </div>
-        <button
-          class="btn-close-pr"
+        <SButton
+          variant="danger"
+          size="sm"
           :disabled="closingId === pr.id"
+          :loading="closingId === pr.id"
           @click.stop="handleClose(pr)"
         >
-          {{ closingId === pr.id ? 'Closing...' : 'Close' }}
-        </button>
-      </div>
+          Close
+        </SButton>
+      </SCard>
     </div>
   </section>
 </template>
@@ -119,38 +126,6 @@ function openDetail(id: number) {
   gap: var(--space-2);
 }
 
-.stale-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 var(--space-1-5);
-  border-radius: var(--radius-full);
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.stale-loading {
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--color-text-muted);
-  font-size: 14px;
-}
-
-.stale-empty {
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--color-text-muted);
-  font-size: 14px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-}
-
 .stale-list {
   display: flex;
   flex-direction: column;
@@ -161,17 +136,6 @@ function openDetail(id: number) {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.stale-card:hover {
-  border-color: var(--color-border-hover);
-  box-shadow: var(--shadow-panel);
 }
 
 .stale-card-main {
@@ -191,15 +155,6 @@ function openDetail(id: number) {
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--color-text-muted);
-}
-
-.stale-age {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-status-warning);
-  background: rgba(234, 179, 8, 0.15);
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
 }
 
 .stale-title {
@@ -233,37 +188,5 @@ function openDetail(id: number) {
 .stale-branch {
   font-family: var(--font-mono);
   font-size: 11px;
-}
-
-.btn-close-pr {
-  flex-shrink: 0;
-  background: rgba(220, 38, 38, 0.15);
-  color: var(--color-status-danger);
-  font-weight: 600;
-  font-size: 13px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-close-pr:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.25);
-  border-color: rgba(220, 38, 38, 0.5);
-}
-
-.btn-close-pr:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-close-pr:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-close-pr:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
 }
 </style>
