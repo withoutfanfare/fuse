@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { WifiOff, RefreshCw } from 'lucide-vue-next'
+import { SNoticeBanner } from '@stuntrocket/ui'
 
 defineProps<{
   isOnline: boolean
@@ -14,47 +15,43 @@ const emit = defineEmits<{
 
 <template>
   <Transition name="offline-banner">
-    <div v-if="!isOnline" class="offline-banner">
-      <WifiOff :size="16" class="offline-icon" />
-      <span class="offline-text">
-        You're offline — showing cached data
-        <span v-if="timeSinceSync" class="offline-sync-age">
-          (last synced {{ timeSinceSync }})
+    <SNoticeBanner v-if="!isOnline" variant="warning">
+      <div class="offline-content">
+        <WifiOff :size="16" class="offline-icon" />
+        <span class="offline-text">
+          You're offline — showing cached data
+          <span v-if="timeSinceSync" class="offline-sync-age">
+            (last synced {{ timeSinceSync }})
+          </span>
         </span>
-      </span>
-      <button
-        class="offline-retry"
-        :disabled="syncing"
-        @click="emit('retry')"
-      >
-        <RefreshCw :size="12" :class="{ spinning: syncing }" />
-        {{ syncing ? 'Retrying…' : 'Retry' }}
-      </button>
-    </div>
+        <button
+          class="offline-retry"
+          :disabled="syncing"
+          @click="emit('retry')"
+        >
+          <RefreshCw :size="12" :class="{ spinning: syncing }" />
+          {{ syncing ? 'Retrying\u2026' : 'Retry' }}
+        </button>
+      </div>
+    </SNoticeBanner>
   </Transition>
 </template>
 
 <style scoped>
-.offline-banner {
+.offline-content {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: rgba(234, 179, 8, 0.08);
-  border: 1px solid rgba(234, 179, 8, 0.2);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-4);
+  width: 100%;
 }
 
 .offline-icon {
-  color: var(--color-status-warning);
   flex-shrink: 0;
 }
 
 .offline-text {
   flex: 1;
   font-size: 12px;
-  color: var(--color-text-secondary);
 }
 
 .offline-sync-age {
