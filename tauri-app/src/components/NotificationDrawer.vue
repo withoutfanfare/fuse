@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { X, CheckCheck, Trash2, Info, AlertTriangle, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { CheckCheck, Trash2, Info, AlertTriangle, AlertCircle, CheckCircle, X } from 'lucide-vue-next'
+import { SPanel, SIconButton } from '@stuntrocket/ui'
 import { useNotificationCentreStore } from '../stores/notificationCentre'
 import type { ToastType } from '../types'
 
@@ -36,148 +37,94 @@ const isEmpty = computed(() => store.entries.length === 0)
 </script>
 
 <template>
-  <Transition name="drawer-slide">
-    <div
-      v-if="store.drawerOpen"
-      class="drawer-backdrop"
-      @click.self="store.closeDrawer()"
-    >
-      <aside class="notification-drawer" role="complementary" aria-label="Notification centre">
-        <header class="drawer-header">
-          <h2 class="drawer-title">Notifications</h2>
-          <div class="drawer-actions">
-            <button
-              v-if="!isEmpty"
-              class="drawer-action-btn"
-              title="Mark all as read"
-              @click="store.markAllRead()"
-            >
-              <CheckCheck :size="16" />
-            </button>
-            <button
-              v-if="!isEmpty"
-              class="drawer-action-btn"
-              title="Clear all"
-              @click="store.clearAll()"
-            >
-              <Trash2 :size="16" />
-            </button>
-            <button
-              class="drawer-action-btn"
-              title="Close"
-              @click="store.closeDrawer()"
-            >
-              <X :size="16" />
-            </button>
-          </div>
-        </header>
-
-        <div class="drawer-body">
-          <div v-if="isEmpty" class="drawer-empty">
-            <Info :size="28" class="drawer-empty-icon" />
-            <p>No notifications yet</p>
-          </div>
-          <TransitionGroup v-else name="notif" tag="div" class="drawer-list">
-            <div
-              v-for="entry in store.entries"
-              :key="entry.id"
-              class="notif-item"
-              :class="{ 'notif-item--unread': !entry.read }"
-            >
-              <div
-                class="notif-icon"
-                :style="{ color: typeConfig[entry.type].colour }"
-              >
-                <component :is="typeConfig[entry.type].icon" :size="16" />
-              </div>
-              <div class="notif-content">
-                <span class="notif-title">{{ entry.title }}</span>
-                <span v-if="entry.message" class="notif-message">{{ entry.message }}</span>
-                <span class="notif-time">{{ formatTime(entry.timestamp) }}</span>
-              </div>
-              <button
-                class="notif-dismiss"
-                title="Dismiss"
-                @click="store.remove(entry.id)"
-              >
-                <X :size="14" />
-              </button>
-            </div>
-          </TransitionGroup>
+  <SPanel
+    :open="store.drawerOpen"
+    title="Notifications"
+    size="sm"
+    closable
+    overlay
+    @close="store.closeDrawer()"
+  >
+    <template #header>
+      <div class="drawer-header-content">
+        <span class="drawer-title">Notifications</span>
+        <div class="drawer-actions">
+          <SIconButton
+            v-if="!isEmpty"
+            variant="ghost"
+            size="sm"
+            tooltip="Mark all as read"
+            @click="store.markAllRead()"
+          >
+            <CheckCheck :size="16" />
+          </SIconButton>
+          <SIconButton
+            v-if="!isEmpty"
+            variant="ghost"
+            size="sm"
+            tooltip="Clear all"
+            @click="store.clearAll()"
+          >
+            <Trash2 :size="16" />
+          </SIconButton>
         </div>
-      </aside>
+      </div>
+    </template>
+
+    <div class="drawer-body">
+      <div v-if="isEmpty" class="drawer-empty">
+        <Info :size="28" class="drawer-empty-icon" />
+        <p>No notifications yet</p>
+      </div>
+      <TransitionGroup v-else name="notif" tag="div" class="drawer-list">
+        <div
+          v-for="entry in store.entries"
+          :key="entry.id"
+          class="notif-item"
+          :class="{ 'notif-item--unread': !entry.read }"
+        >
+          <div
+            class="notif-icon"
+            :style="{ color: typeConfig[entry.type].colour }"
+          >
+            <component :is="typeConfig[entry.type].icon" :size="16" />
+          </div>
+          <div class="notif-content">
+            <span class="notif-title">{{ entry.title }}</span>
+            <span v-if="entry.message" class="notif-message">{{ entry.message }}</span>
+            <span class="notif-time">{{ formatTime(entry.timestamp) }}</span>
+          </div>
+          <button
+            class="notif-dismiss"
+            title="Dismiss"
+            @click="store.remove(entry.id)"
+          >
+            <X :size="14" />
+          </button>
+        </div>
+      </TransitionGroup>
     </div>
-  </Transition>
+  </SPanel>
 </template>
 
 <style scoped>
-/* Backdrop — subtle overlay to catch outside clicks */
-.drawer-backdrop {
-  position: fixed;
-  top: 28px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* Drawer panel */
-.notification-drawer {
-  position: fixed;
-  top: 28px;
-  right: 0;
-  width: 320px;
-  height: calc(100% - 28px);
-  background: var(--color-surface-raised);
-  border-left: 1px solid var(--color-border-default);
-  box-shadow: var(--shadow-overlay);
-  display: flex;
-  flex-direction: column;
-  z-index: 41;
-}
-
-/* Header */
-.drawer-header {
+.drawer-header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border-default);
-  flex-shrink: 0;
+  width: 100%;
 }
 
 .drawer-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0;
 }
 
 .drawer-actions {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-}
-
-.drawer-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-md);
-  background: none;
-  border: 1px solid transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.drawer-action-btn:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-default);
 }
 
 /* Body — scrollable list */
@@ -289,25 +236,6 @@ const isEmpty = computed(() => store.entries.length === 0)
 .notif-dismiss:hover {
   color: var(--color-text-primary);
   background: var(--color-surface-hover);
-}
-
-/* Slide transition for the drawer */
-.drawer-slide-enter-active {
-  transition: all 0.25s ease-out;
-}
-
-.drawer-slide-leave-active {
-  transition: all 0.2s ease-in;
-}
-
-.drawer-slide-enter-from,
-.drawer-slide-leave-to {
-  opacity: 0;
-}
-
-.drawer-slide-enter-from .notification-drawer,
-.drawer-slide-leave-to .notification-drawer {
-  transform: translateX(100%);
 }
 
 /* List item transitions */

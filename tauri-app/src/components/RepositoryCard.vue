@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
+import { SCard, SIconButton } from '@stuntrocket/ui'
 import { RefreshCw, X, Pencil } from 'lucide-vue-next'
 import type { Repository, RepoGroup } from '../types'
 
@@ -52,15 +53,19 @@ function onBranchKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="repo-card">
+  <SCard variant="content" hoverable>
     <div class="repo-header">
       <div class="repo-name">
         <span class="repo-owner">{{ repo.owner }}/</span>
         <span class="repo-repo">{{ repo.name }}</span>
       </div>
       <div class="repo-actions">
-        <button class="btn-action btn-sync" @click="emit('sync', repo.id)" title="Sync PRs"><RefreshCw :size="14" /></button>
-        <button class="btn-action btn-remove" @click="emit('remove', repo.id)" title="Remove"><X :size="14" /></button>
+        <SIconButton variant="ghost" size="sm" tooltip="Sync PRs" @click="emit('sync', repo.id)">
+          <RefreshCw :size="14" />
+        </SIconButton>
+        <SIconButton variant="danger" size="sm" tooltip="Remove" @click="emit('remove', repo.id)">
+          <X :size="14" />
+        </SIconButton>
       </div>
     </div>
     <div v-if="groups && groups.length > 0" class="repo-group-tags">
@@ -99,28 +104,10 @@ function onBranchKeydown(event: KeyboardEvent) {
         Last synced: {{ lastSynced }}
       </span>
     </div>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
-.repo-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.repo-card:hover {
-  transform: scale(1.005);
-  box-shadow: var(--shadow-panel);
-}
-
-.repo-card:active {
-  transform: scale(0.99);
-}
-
 .repo-header {
   display: flex;
   align-items: center;
@@ -144,43 +131,6 @@ function onBranchKeydown(event: KeyboardEvent) {
 .repo-actions {
   display: flex;
   gap: var(--space-2);
-}
-
-.btn-action {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-default);
-  padding: 0;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-action:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-hover);
-}
-
-.btn-action:active {
-  transform: scale(0.97);
-}
-
-.btn-action:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.btn-remove:hover {
-  color: var(--color-status-danger);
-  border-color: rgba(220, 38, 38, 0.3);
-  background: rgba(220, 38, 38, 0.1);
 }
 
 .repo-group-tags {

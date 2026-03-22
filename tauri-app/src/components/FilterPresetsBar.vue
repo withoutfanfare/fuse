@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Save, Trash2, Edit3 } from 'lucide-vue-next'
+import { SButton, SInput, SIconButton } from '@stuntrocket/ui'
 import { useFilterPresets } from '../composables/useFilterPresets'
 import type { FilterPreset } from '../types'
 
@@ -71,43 +72,44 @@ async function finishRename() {
         </template>
         <template v-else>
           <span class="preset-name">{{ preset.name }}</span>
-          <button
+          <SIconButton
             v-if="!preset.is_builtin"
-            class="preset-action"
-            title="Rename"
+            variant="ghost"
+            size="sm"
+            tooltip="Rename"
             @click.stop="startRename(preset)"
           >
             <Edit3 :size="10" />
-          </button>
-          <button
+          </SIconButton>
+          <SIconButton
             v-if="!preset.is_builtin"
-            class="preset-action preset-delete"
-            title="Delete"
+            variant="danger"
+            size="sm"
+            tooltip="Delete"
             @click.stop="handleDelete(preset.id)"
           >
             <Trash2 :size="10" />
-          </button>
+          </SIconButton>
         </template>
       </button>
     </div>
-    <button
+    <SButton
       v-if="!showSaveDialog"
-      class="preset-save-btn"
-      title="Save current filters as preset"
+      variant="ghost"
+      size="sm"
       @click="showSaveDialog = true"
     >
       <Save :size="14" />
       Save
-    </button>
+    </SButton>
     <div v-if="showSaveDialog" class="preset-save-dialog">
-      <input
+      <SInput
         v-model="newPresetName"
-        class="preset-save-input"
         placeholder="Preset name..."
         @keyup.enter="handleSave"
       />
-      <button class="preset-save-confirm" @click="handleSave">Save</button>
-      <button class="preset-save-cancel" @click="showSaveDialog = false">&times;</button>
+      <SButton variant="primary" size="sm" @click="handleSave">Save</SButton>
+      <SButton variant="ghost" size="sm" @click="showSaveDialog = false">&times;</SButton>
     </div>
   </div>
 </template>
@@ -164,29 +166,6 @@ async function finishRename() {
   white-space: nowrap;
 }
 
-.preset-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  padding: 0;
-  transition: color var(--transition-fast);
-}
-
-.preset-action:hover {
-  color: var(--color-text-primary);
-}
-
-.preset-delete:hover {
-  color: var(--color-status-danger);
-}
-
 .preset-rename-input {
   width: 80px;
   background: var(--color-surface-input);
@@ -198,63 +177,9 @@ async function finishRename() {
   outline: none;
 }
 
-.preset-save-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: none;
-  border: 1px dashed var(--color-border-default);
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.preset-save-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
 .preset-save-dialog {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-}
-
-.preset-save-input {
-  width: 120px;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-2);
-  font-size: 12px;
-  color: var(--color-text-primary);
-}
-
-.preset-save-input:focus {
-  border-color: var(--color-border-focus);
-  outline: none;
-}
-
-.preset-save-confirm {
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.preset-save-cancel {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0 var(--space-1);
 }
 </style>
