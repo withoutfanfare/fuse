@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { SCard, SSectionHeader, SSpinner, SEmptyState } from '@stuntrocket/ui'
 import type { ReviewVelocityStats } from '../types'
 
 const loading = ref(true)
@@ -27,21 +28,24 @@ function formatDuration(seconds: number): string {
 }
 
 const avgFormatted = computed(() => {
-  if (!stats.value) return '—'
+  if (!stats.value) return '--'
   return formatDuration(stats.value.avg_review_seconds)
 })
 
 const totalFormatted = computed(() => {
-  if (!stats.value) return '—'
+  if (!stats.value) return '--'
   return formatDuration(stats.value.total_seconds)
 })
 </script>
 
 <template>
-  <div class="review-time-dashboard">
-    <h2 class="section-title">Review Time Insights</h2>
+  <SCard variant="content">
+    <SSectionHeader title="Review Time Insights" />
 
-    <div v-if="loading" class="loading-state">Loading review time data...</div>
+    <div v-if="loading" class="loading-state">
+      <SSpinner />
+      <span>Loading review time data...</span>
+    </div>
     <div v-else-if="error" class="error-state">{{ error }}</div>
     <div v-else-if="stats && stats.total_reviews > 0" class="time-content">
       <div class="time-stats-row">
@@ -60,7 +64,7 @@ const totalFormatted = computed(() => {
       </div>
 
       <div v-if="stats.by_risk_tier.length > 0" class="time-breakdown">
-        <h3 class="subsection-title">Average by Risk Tier</h3>
+        <SSectionHeader title="Average by Risk Tier" />
         <div class="tier-bars">
           <div v-for="tier in stats.by_risk_tier" :key="tier.tier" class="tier-bar-row">
             <span class="tier-label" :class="`tier-${tier.tier}`">{{ tier.tier }}</span>
@@ -78,7 +82,7 @@ const totalFormatted = computed(() => {
       </div>
 
       <div v-if="stats.weekly_trend.length > 0" class="time-trend">
-        <h3 class="subsection-title">Weekly Trend</h3>
+        <SSectionHeader title="Weekly Trend" />
         <div class="trend-rows">
           <div v-for="week in stats.weekly_trend" :key="week.week_start" class="trend-row">
             <span class="trend-week">{{ week.week_start }}</span>
@@ -88,43 +92,34 @@ const totalFormatted = computed(() => {
         </div>
       </div>
     </div>
-    <div v-else class="empty-state">
-      No review time data yet. Time is tracked automatically when you open PR detail views.
-    </div>
-  </div>
+    <SEmptyState
+      v-else
+      title="No review time data yet"
+      description="Time is tracked automatically when you open PR detail views."
+    />
+  </SCard>
 </template>
 
 <style scoped>
-.review-time-dashboard {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
-}
-
-.section-title {
-  font-size: var(--text-subheading-size);
-  font-weight: var(--text-subheading-weight);
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-4);
-}
-
-.subsection-title {
-  font-size: 12px;
-  font-weight: 600;
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: center;
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: var(--space-3);
-  margin-top: var(--space-4);
+  font-size: 13px;
+  padding: var(--space-4);
 }
 
-.loading-state, .error-state, .empty-state {
+.error-state {
   text-align: center;
   color: var(--color-text-muted);
   font-size: 13px;
   padding: var(--space-4);
+}
+
+.time-content {
+  margin-top: var(--space-4);
 }
 
 .time-stats-row {
@@ -152,10 +147,15 @@ const totalFormatted = computed(() => {
   color: var(--color-text-muted);
 }
 
+.time-breakdown {
+  margin-top: var(--space-4);
+}
+
 .tier-bars {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .tier-bar-row {
@@ -206,10 +206,15 @@ const totalFormatted = computed(() => {
   color: var(--color-text-muted);
 }
 
+.time-trend {
+  margin-top: var(--space-4);
+}
+
 .trend-rows {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .trend-row {

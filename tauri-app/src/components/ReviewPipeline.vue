@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SBadge } from '@stuntrocket/ui'
 
 const props = defineProps<{
   status: string
@@ -30,6 +31,15 @@ function stepState(idx: number): 'complete' | 'current' | 'future' {
   if (idx === currentIndex.value) return 'current'
   return 'future'
 }
+
+/** Map step state to an SBadge variant for the label */
+function stepBadgeVariant(idx: number): 'success' | 'accent' | 'warning' | 'default' {
+  const state = stepState(idx)
+  if (state === 'complete') return 'success'
+  if (state === 'current' && isChangesRequested.value && idx === currentIndex.value) return 'warning'
+  if (state === 'current') return 'accent'
+  return 'default'
+}
 </script>
 
 <template>
@@ -47,9 +57,9 @@ function stepState(idx: number): 'complete' | 'current' | 'future' {
           class="step-circle"
           :class="{ 'changes-requested': isChangesRequested && idx === currentIndex }"
         />
-        <span class="step-label">
+        <SBadge :variant="stepBadgeVariant(idx)" class="step-badge">
           {{ isChangesRequested && idx === currentIndex ? 'Changes Req.' : stepLabels[step] }}
-        </span>
+        </SBadge>
       </div>
     </template>
   </div>
@@ -64,7 +74,7 @@ function stepState(idx: number): 'complete' | 'current' | 'future' {
   padding: var(--space-3) 0;
 }
 
-/* ── Step container ── */
+/* Step container */
 .pipeline-step {
   display: flex;
   flex-direction: column;
@@ -73,7 +83,7 @@ function stepState(idx: number): 'complete' | 'current' | 'future' {
   flex: 0 0 auto;
 }
 
-/* ── Circle ── */
+/* Circle */
 .step-circle {
   width: 16px;
   height: 16px;
@@ -109,11 +119,11 @@ function stepState(idx: number): 'complete' | 'current' | 'future' {
   border-color: var(--color-pipeline-track);
 }
 
-/* ── Connecting line ── */
+/* Connecting line */
 .pipeline-line {
   flex: 1;
   height: 2px;
-  margin-top: 7px; /* vertically centre with 16 px circle */
+  margin-top: 7px; /* vertically centre with 16px circle */
   background: var(--color-pipeline-track);
   transition: background 0.3s ease;
 }
@@ -122,21 +132,14 @@ function stepState(idx: number): 'complete' | 'current' | 'future' {
   background: var(--color-pipeline-complete);
 }
 
-/* ── Label ── */
-.step-label {
+/* Badge label styling */
+.step-badge {
   font-size: 10px;
-  color: var(--color-text-muted);
   white-space: nowrap;
   text-align: center;
 }
 
-.pipeline-step.complete .step-label,
-.pipeline-step.current .step-label {
-  color: var(--color-text-secondary);
-  font-weight: 600;
-}
-
-/* ── Animations ── */
+/* Animations */
 @keyframes pipeline-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
   50% { box-shadow: 0 0 0 6px rgba(249, 115, 22, 0); }

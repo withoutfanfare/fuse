@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { openUrl } from '@tauri-apps/plugin-opener'
+import { SButton, SBadge, SListRow, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
 import type { CiCheck } from '../types'
 
 const props = defineProps<{
@@ -25,16 +26,16 @@ const lastFetchedLabel = computed(() => {
   return `${mins}m ago`
 })
 
+function statusBadgeVariant(check: CiCheck): 'success' | 'error' | 'warning' {
+  if (check.conclusion === 'SUCCESS' || check.conclusion === 'success') return 'success'
+  if (check.conclusion === 'FAILURE' || check.conclusion === 'failure') return 'error'
+  return 'warning'
+}
+
 function statusIcon(check: CiCheck): string {
   if (check.conclusion === 'SUCCESS' || check.conclusion === 'success') return '\u2713'
   if (check.conclusion === 'FAILURE' || check.conclusion === 'failure') return '\u2717'
   return '\u23F3'
-}
-
-function statusClass(check: CiCheck): string {
-  if (check.conclusion === 'SUCCESS' || check.conclusion === 'success') return 'check-pass'
-  if (check.conclusion === 'FAILURE' || check.conclusion === 'failure') return 'check-fail'
-  return 'check-pending'
 }
 
 async function openDetails(url: string | null) {
@@ -45,11 +46,12 @@ async function openDetails(url: string | null) {
 <template>
   <div class="ci-panel">
     <button class="ci-panel-header" @click="expanded = !expanded">
-      <h2 class="section-title">CI/CD Status</h2>
+      <SSectionHeader title="CI/CD Status" />
       <div class="header-right">
         <span v-if="lastFetchedLabel" class="last-fetched">{{ lastFetchedLabel }}</span>
-        <button
-          class="refresh-btn"
+        <SButton
+          variant="icon"
+          size="sm"
           title="Refresh CI checks"
           aria-label="Refresh CI checks"
           @click.stop="emit('refresh')"
@@ -58,27 +60,36 @@ async function openDetails(url: string | null) {
             <polyline points="23 4 23 10 17 10" />
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </svg>
-        </button>
+        </SButton>
         <span class="toggle-icon">{{ expanded ? '\u25B2' : '\u25BC' }}</span>
       </div>
     </button>
 
     <div v-if="expanded" class="ci-panel-body">
-      <div v-if="checks.length === 0" class="ci-empty">
-        No checks found for this pull request.
-      </div>
+      <SEmptyState
+        v-if="checks.length === 0"
+        title="No checks found"
+        description="No checks found for this pull request."
+      />
 
-      <div v-for="check in checks" :key="check.name" class="ci-check-row">
-        <span class="check-icon" :class="statusClass(check)">{{ statusIcon(check) }}</span>
-        <span class="check-name">{{ check.name }}</span>
-        <button
-          v-if="check.detailsUrl"
-          class="check-link"
-          @click="openDetails(check.detailsUrl)"
-        >
-          Details &rarr;
-        </button>
-      </div>
+      <SListRow v-for="check in checks" :key="check.name">
+        <template #default>
+          <div class="check-row-content">
+            <SBadge :variant="statusBadgeVariant(check)">{{ statusIcon(check) }}</SBadge>
+            <span class="check-name">{{ check.name }}</span>
+          </div>
+        </template>
+        <template #actions>
+          <SButton
+            v-if="check.detailsUrl"
+            variant="ghost"
+            size="sm"
+            @click="openDetails(check.detailsUrl)"
+          >
+            Details &rarr;
+          </SButton>
+        </template>
+      </SListRow>
     </div>
   </div>
 </template>
@@ -120,39 +131,6 @@ async function openDetails(url: string | null) {
   font-family: var(--font-mono);
 }
 
-.refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.refresh-btn:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-default);
-}
-
-.refresh-btn:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
 .toggle-icon {
   font-size: 11px;
   color: var(--color-text-muted);
@@ -162,41 +140,10 @@ async function openDetails(url: string | null) {
   padding: 0 var(--space-5) var(--space-4);
 }
 
-.ci-empty {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  padding: var(--space-3) 0;
-}
-
-.ci-check-row {
+.check-row-content {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.ci-check-row:last-child {
-  border-bottom: none;
-}
-
-.check-icon {
-  font-size: 13px;
-  font-weight: 700;
-  min-width: 18px;
-  text-align: center;
-}
-
-.check-pass { color: var(--color-status-success); }
-.check-fail { color: var(--color-status-danger); }
-.check-pending {
-  color: var(--color-status-warning);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
 }
 
 .check-name {
@@ -204,21 +151,5 @@ async function openDetails(url: string | null) {
   font-size: 13px;
   color: var(--color-text-primary);
   font-weight: 500;
-}
-
-.check-link {
-  background: none;
-  border: none;
-  color: var(--color-accent);
-  font-size: 12px;
-  cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.check-link:hover {
-  background: var(--color-accent-muted);
-  color: var(--color-accent-hover);
 }
 </style>
