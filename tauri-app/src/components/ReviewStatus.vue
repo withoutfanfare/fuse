@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { SBadge } from '@stuntrocket/ui'
 import type { ReviewStatus } from '../types'
 import ReviewPipeline from './ReviewPipeline.vue'
 
@@ -22,6 +23,15 @@ function save() {
   emit('status-changed', localStatus.value, localNotes.value)
 }
 
+/** Map review status values to SBadge variants. */
+const statusVariantMap: Record<ReviewStatus, 'default' | 'info' | 'warning' | 'success' | 'error'> = {
+  pending: 'default',
+  in_progress: 'info',
+  reviewed: 'warning',
+  approved: 'success',
+  changes_requested: 'error',
+}
+
 const statusOptions: { value: ReviewStatus; label: string }[] = [
   { value: 'pending', label: 'Pending' },
   { value: 'in_progress', label: 'In Progress' },
@@ -37,22 +47,23 @@ const statusOptions: { value: ReviewStatus; label: string }[] = [
     <div class="status-row">
       <label class="status-label">Review Status</label>
       <div class="status-buttons">
-        <button
+        <SBadge
           v-for="opt in statusOptions"
           :key="opt.value"
+          :variant="localStatus === opt.value ? statusVariantMap[opt.value] : 'default'"
           class="status-btn"
-          :class="{ active: localStatus === opt.value, [`status-${opt.value}`]: true }"
+          :class="{ active: localStatus === opt.value }"
           @click="localStatus = opt.value"
         >
           {{ opt.label }}
-        </button>
+        </SBadge>
       </div>
     </div>
     <div class="notes-row">
       <textarea
         v-model="localNotes"
         class="notes-input"
-        placeholder="Add review notes…"
+        placeholder="Add review notes..."
         rows="3"
       />
     </div>
@@ -87,20 +98,12 @@ const statusOptions: { value: ReviewStatus; label: string }[] = [
 }
 
 .status-btn {
-  background: var(--color-surface-hover);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  border: 1px solid transparent;
-  transition: all var(--transition-fast);
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .status-btn:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-hover);
+  opacity: 0.85;
 }
 
 .status-btn:focus-visible {
@@ -110,36 +113,6 @@ const statusOptions: { value: ReviewStatus; label: string }[] = [
 
 .status-btn:active {
   transform: scale(0.97);
-}
-
-.status-btn.active {
-  color: var(--color-text-primary);
-}
-
-.status-btn.active.status-pending {
-  background: rgba(100, 116, 139, 0.2);
-  color: var(--color-text-muted);
-  border-color: rgba(100, 116, 139, 0.3);
-}
-.status-btn.active.status-in_progress {
-  background: rgba(59, 130, 246, 0.2);
-  color: var(--color-status-info);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-.status-btn.active.status-reviewed {
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-  border-color: rgba(234, 179, 8, 0.3);
-}
-.status-btn.active.status-approved {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--color-status-success);
-  border-color: rgba(34, 197, 94, 0.3);
-}
-.status-btn.active.status-changes_requested {
-  background: rgba(220, 38, 38, 0.2);
-  color: var(--color-status-danger);
-  border-color: rgba(220, 38, 38, 0.3);
 }
 
 .notes-input {

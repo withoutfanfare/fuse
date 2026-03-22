@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { openUrl } from '@tauri-apps/plugin-opener'
+import { SBadge, SStatusDot } from '@stuntrocket/ui'
 import type { Deployment } from '../types'
 
 defineProps<{
@@ -23,21 +24,20 @@ function statusLabel(status: string): string {
   return labels[status] || status
 }
 
-/** Map environment name to a display colour class. */
-function envClass(environment: string): string {
-  const lower = environment.toLowerCase()
-  if (lower.includes('prod')) return 'env-production'
-  if (lower.includes('staging') || lower.includes('stage')) return 'env-staging'
-  if (lower.includes('preview') || lower.includes('dev')) return 'env-preview'
-  return 'env-default'
+/** Map deployment status to SBadge variant. */
+function badgeVariant(status: string): 'success' | 'warning' | 'error' | 'default' {
+  if (status === 'success' || status === 'active') return 'success'
+  if (status === 'pending' || status === 'queued' || status === 'in_progress') return 'warning'
+  if (status === 'failure' || status === 'error') return 'error'
+  return 'default'
 }
 
-/** Map deployment status to a status colour class. */
-function statusClass(status: string): string {
-  if (status === 'success' || status === 'active') return 'status-success'
-  if (status === 'pending' || status === 'queued' || status === 'in_progress') return 'status-pending'
-  if (status === 'failure' || status === 'error') return 'status-failure'
-  return 'status-neutral'
+/** Map deployment status to SStatusDot variant. */
+function dotVariant(status: string): 'success' | 'warning' | 'error' | 'neutral' {
+  if (status === 'success' || status === 'active') return 'success'
+  if (status === 'pending' || status === 'queued' || status === 'in_progress') return 'warning'
+  if (status === 'failure' || status === 'error') return 'error'
+  return 'neutral'
 }
 
 function formatDate(dateStr: string): string {
@@ -57,14 +57,14 @@ async function openDeploymentUrl(url: string | null) {
     <span class="loading-text">Checking deployments...</span>
   </div>
   <div v-else-if="deployments.length > 0" class="deployment-badges">
-    <div
+    <SBadge
       v-for="dep in deployments"
       :key="dep.environment"
-      class="deployment-badge"
-      :class="[envClass(dep.environment), statusClass(dep.status)]"
+      :variant="badgeVariant(dep.status)"
       :title="`${dep.environment}: ${statusLabel(dep.status)} — ${formatDate(dep.updated_at)}`"
+      class="deployment-badge"
     >
-      <span class="deployment-status-dot" :class="statusClass(dep.status)" />
+      <SStatusDot :variant="dotVariant(dep.status)" />
       <span class="deployment-env">{{ dep.environment }}</span>
       <span class="deployment-state">{{ statusLabel(dep.status) }}</span>
       <button
@@ -79,7 +79,7 @@ async function openDeploymentUrl(url: string | null) {
           <line x1="10" y1="14" x2="21" y2="3" />
         </svg>
       </button>
-    </div>
+    </SBadge>
   </div>
 </template>
 
@@ -101,71 +101,7 @@ async function openDeploymentUrl(url: string | null) {
 }
 
 .deployment-badge {
-  display: inline-flex;
-  align-items: center;
   gap: 5px;
-  padding: 2px var(--space-2) 2px 6px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 500;
-  border: 1px solid transparent;
-  transition: all var(--transition-fast);
-}
-
-/* Environment colour schemes */
-.deployment-badge.env-production {
-  background: rgba(220, 38, 38, 0.12);
-  border-color: rgba(220, 38, 38, 0.25);
-  color: #f87171;
-}
-
-.deployment-badge.env-staging {
-  background: rgba(234, 179, 8, 0.12);
-  border-color: rgba(234, 179, 8, 0.25);
-  color: #fbbf24;
-}
-
-.deployment-badge.env-preview {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.25);
-  color: #60a5fa;
-}
-
-.deployment-badge.env-default {
-  background: rgba(100, 116, 139, 0.12);
-  border-color: rgba(100, 116, 139, 0.25);
-  color: var(--color-text-muted);
-}
-
-/* Status indicator dot */
-.deployment-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.deployment-status-dot.status-success {
-  background: var(--color-status-success);
-  box-shadow: 0 0 4px rgba(34, 197, 94, 0.5);
-}
-
-.deployment-status-dot.status-pending {
-  background: var(--color-status-warning);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-.deployment-status-dot.status-failure {
-  background: var(--color-status-danger);
-}
-
-.deployment-status-dot.status-neutral {
-  background: var(--color-text-muted);
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
 }
 
 .deployment-env {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SBadge } from '@stuntrocket/ui'
 import type { ConflictStatus } from '../types'
 
 const props = defineProps<{
@@ -7,11 +8,12 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
-const badgeClass = computed(() => {
-  if (!props.status) return 'conflict-unknown'
-  if (props.status.has_conflicts) return 'conflict-yes'
-  if (props.status.mergeable === 'MERGEABLE') return 'conflict-clean'
-  return 'conflict-unknown'
+/** Map conflict state to SBadge variant. */
+const badgeVariant = computed<'error' | 'success' | 'warning'>(() => {
+  if (!props.status) return 'warning'
+  if (props.status.has_conflicts) return 'error'
+  if (props.status.mergeable === 'MERGEABLE') return 'success'
+  return 'warning'
 })
 
 const label = computed(() => {
@@ -44,50 +46,28 @@ const tooltip = computed(() => {
 </script>
 
 <template>
-  <span
+  <SBadge
     v-if="loading || status"
-    class="conflict-badge"
-    :class="[badgeClass]"
+    :variant="badgeVariant"
     :title="tooltip"
+    class="conflict-badge"
   >
-    <span class="conflict-icon">{{ icon }}</span>
+    <span class="conflict-icon" :class="{ 'conflict-icon--loading': loading }">{{ icon }}</span>
     {{ label }}
-  </span>
+  </SBadge>
 </template>
 
 <style scoped>
 .conflict-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
   cursor: help;
+  gap: var(--space-1);
 }
 
 .conflict-icon {
   font-size: 11px;
 }
 
-.conflict-clean {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--color-status-success);
-}
-
-.conflict-yes {
-  background: rgba(220, 38, 38, 0.2);
-  color: var(--color-status-danger);
-}
-
-.conflict-unknown {
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-}
-
-.conflict-unknown .conflict-icon {
+.conflict-icon--loading {
   animation: spin 1.5s linear infinite;
 }
 

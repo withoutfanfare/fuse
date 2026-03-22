@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SProgressBar } from '@stuntrocket/ui'
 
 const props = defineProps<{
   reviewed: number
@@ -11,7 +12,13 @@ const percentage = computed(() => {
   return Math.round((props.reviewed / props.total) * 100)
 })
 
-// SVG donut parameters
+/** Normalised progress value (0-1) for SProgressBar. */
+const progressValue = computed(() => {
+  if (props.total === 0) return 0
+  return props.reviewed / props.total
+})
+
+// SVG donut parameters — retained for primary visual display
 const size = 72
 const strokeWidth = 7
 const radius = (size - strokeWidth) / 2
@@ -54,6 +61,13 @@ const dashOffset = computed(() => {
         <span class="donut-percentage">{{ percentage }}%</span>
       </div>
     </div>
+    <SProgressBar
+      :value="progressValue"
+      :label="`${reviewed} of ${total} PR${total === 1 ? '' : 's'} reviewed`"
+      :show-value="true"
+      size="sm"
+      class="progress-bar"
+    />
     <p class="progress-text">
       {{ reviewed }} of {{ total }} PR{{ total === 1 ? '' : 's' }} reviewed
     </p>
@@ -106,6 +120,10 @@ const dashOffset = computed(() => {
   font-weight: 700;
   color: var(--color-text-primary);
   font-family: var(--font-mono);
+}
+
+.progress-bar {
+  width: 100%;
 }
 
 .progress-text {

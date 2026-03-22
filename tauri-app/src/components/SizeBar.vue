@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SProgressBar } from '@stuntrocket/ui'
 
 const props = defineProps<{
   additions: number
@@ -8,14 +9,16 @@ const props = defineProps<{
 
 const total = computed(() => props.additions + props.deletions)
 
-const additionPercent = computed(() => {
+/** Normalised addition ratio (0-1) for SProgressBar. */
+const additionRatio = computed(() => {
   if (total.value === 0) return 0
-  return (props.additions / total.value) * 100
+  return props.additions / total.value
 })
 
-const deletionPercent = computed(() => {
+/** Normalised deletion ratio (0-1) for SProgressBar. */
+const deletionRatio = computed(() => {
   if (total.value === 0) return 0
-  return (props.deletions / total.value) * 100
+  return props.deletions / total.value
 })
 
 /**
@@ -38,13 +41,19 @@ const barWidth = computed(() => {
     :style="{ width: `${barWidth}px` }"
     :title="`+${additions} / -${deletions}`"
   >
-    <div
+    <SProgressBar
+      :value="additionRatio"
+      variant="success"
+      size="sm"
       class="size-bar-additions"
-      :style="{ width: `${additionPercent}%` }"
+      :style="{ width: `${additionRatio * 100}%` }"
     />
-    <div
+    <SProgressBar
+      :value="1"
+      variant="error"
+      size="sm"
       class="size-bar-deletions"
-      :style="{ width: `${deletionPercent}%` }"
+      :style="{ width: `${deletionRatio * 100}%` }"
     />
   </div>
   <div v-else class="size-bar size-bar-empty" />
@@ -61,14 +70,10 @@ const barWidth = computed(() => {
   margin-top: var(--space-1);
 }
 
-.size-bar-additions {
-  background: var(--color-status-success);
-  height: 100%;
-}
-
+.size-bar-additions,
 .size-bar-deletions {
-  background: var(--color-status-danger);
   height: 100%;
+  flex-shrink: 0;
 }
 
 .size-bar-empty {

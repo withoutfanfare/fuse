@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SBadge, SStatusDot } from '@stuntrocket/ui'
 import type { CiCheck } from '../types'
 
 const props = defineProps<{
@@ -29,56 +30,37 @@ const label = computed(() => {
   if (overallStatus.value === 'pending') return 'Pending'
   return `${passed.value}/${props.checks.length} passed`
 })
+
+/** Map CI status to SBadge variant. */
+const badgeVariant = computed(() => {
+  const variantMap: Record<string, 'success' | 'error' | 'warning'> = {
+    pass: 'success',
+    fail: 'error',
+    pending: 'warning',
+  }
+  return variantMap[overallStatus.value]
+})
+
+/** Map CI status to SStatusDot variant. */
+const dotVariant = computed(() => {
+  const variantMap: Record<string, 'success' | 'error' | 'warning'> = {
+    pass: 'success',
+    fail: 'error',
+    pending: 'warning',
+  }
+  return variantMap[overallStatus.value]
+})
 </script>
 
 <template>
-  <span class="ci-badge" :class="[`ci-${overallStatus}`]">
-    <span class="ci-icon">
-      <template v-if="overallStatus === 'pass'">&#10003;</template>
-      <template v-else-if="overallStatus === 'fail'">&#10007;</template>
-      <template v-else>&#9719;</template>
-    </span>
+  <SBadge :variant="badgeVariant" class="ci-badge">
+    <SStatusDot :variant="dotVariant" />
     {{ label }}
-  </span>
+  </SBadge>
 </template>
 
 <style scoped>
 .ci-badge {
-  display: inline-flex;
-  align-items: center;
   gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.ci-icon {
-  font-size: 11px;
-}
-
-.ci-pass {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--color-status-success);
-}
-
-.ci-fail {
-  background: rgba(220, 38, 38, 0.2);
-  color: var(--color-status-danger);
-}
-
-.ci-pending {
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-}
-
-.ci-pending .ci-icon {
-  animation: spin 1.5s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 </style>
