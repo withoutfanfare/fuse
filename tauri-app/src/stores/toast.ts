@@ -1,40 +1,38 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { Toast, ToastType } from '../types'
+import { useToastStack } from '@stuntrocket/ui'
+import type { ToastType } from '../types'
 import { useNotificationCentreStore } from './notificationCentre'
 
+/** Map local ToastType to library variant names (identical in this case) */
+const variantMap: Record<ToastType, 'success' | 'error' | 'warning' | 'info'> = {
+  success: 'success',
+  error: 'error',
+  warning: 'warning',
+  info: 'info',
+}
+
 export const useToastStore = defineStore('toast', () => {
-  const toasts = ref<Toast[]>([])
+  const stack = useToastStack()
 
-  let nextId = 1
-
+  /**
+   * Show a toast notification.
+   *
+   * The library's useToastStack uses a single `message` string, so
+   * title and message are combined (title — message) when both are provided.
+   */
   function addToast(
     type: ToastType,
     title: string,
     message?: string,
     duration = 4000,
   ) {
-    const id = nextId++
-    const toast: Toast = { id, type, title, message, duration }
-    toasts.value.push(toast)
+    const text = message ? `${title} — ${message}` : title
+    stack.addToast(text, variantMap[type], duration)
 
     /* Also push to the notification centre for persistent history */
     const notifCentre = useNotificationCentreStore()
     notifCentre.push(type, title, message)
-
-    if (duration > 0) {
-      setTimeout(() => removeToast(id), duration)
-    }
-
-    return id
   }
 
-  function removeToast(id: number) {
-    const idx = toasts.value.findIndex(t => t.id === id)
-    if (idx !== -1) {
-      toasts.value.splice(idx, 1)
-    }
-  }
-
-  return { toasts, addToast, removeToast }
+  return { toasts: stack.toasts, addToast, removeToast: stack.removeToast }
 })

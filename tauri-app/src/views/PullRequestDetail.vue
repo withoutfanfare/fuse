@@ -40,7 +40,7 @@ import { SBreadcrumbs } from '@stuntrocket/ui'
 import ConflictBadge from '../components/ConflictBadge.vue'
 const CommitTimeline = defineAsyncComponent(() => import('../components/CommitTimeline.vue'))
 import DeploymentStatus from '../components/DeploymentStatus.vue'
-import TabBar from '../components/TabBar.vue'
+import { SSegmentedControl } from '@stuntrocket/ui'
 import BookmarksList from '../components/BookmarksList.vue'
 const HandoffComposer = defineAsyncComponent(() => import('../components/HandoffComposer.vue'))
 const ReviewSummaryPanel = defineAsyncComponent(() => import('../components/ReviewSummaryPanel.vue'))
@@ -66,11 +66,11 @@ const checklistExpanded = ref(true)
 /* Tabbed layout (Improvement 1) — four detail tabs with sidebar fixed across all */
 type DetailTab = 'overview' | 'code' | 'discussion' | 'ai'
 const activeTab = ref<DetailTab>('overview')
-const detailTabs: { key: string; label: string }[] = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'code', label: 'Code' },
-  { key: 'discussion', label: 'Discussion' },
-  { key: 'ai', label: 'AI' },
+const detailTabs: { value: string; label: string }[] = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'code', label: 'Code' },
+  { value: 'discussion', label: 'Discussion' },
+  { value: 'ai', label: 'AI' },
 ]
 
 const prId = Number(route.params.id)
@@ -463,7 +463,7 @@ function formatDate(dateStr: string): string {
     </Transition>
 
     <!-- Tabbed layout (Improvement 1) — tabs sit above the split, sidebar stays fixed -->
-    <TabBar v-model="activeTab" :tabs="detailTabs" />
+    <SSegmentedControl v-model="activeTab" :options="detailTabs" />
 
     <!-- Code tab uses full width — no sidebar split -->
     <div v-if="activeTab === 'code'" class="detail-main detail-main--full">

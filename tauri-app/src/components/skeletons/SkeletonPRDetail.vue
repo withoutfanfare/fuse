@@ -1,23 +1,27 @@
+<script setup lang="ts">
+import { SSkeleton } from '@stuntrocket/ui'
+</script>
+
 <template>
   <div class="skeleton-pr-detail">
     <!-- Back button placeholder -->
-    <div class="skeleton-block skeleton-back"></div>
+    <SSkeleton width="52px" height="16px" />
 
     <!-- Header -->
     <div class="skeleton-header">
       <div class="skeleton-header-left">
         <div class="skeleton-title-row">
-          <div class="skeleton-block skeleton-risk-badge"></div>
-          <div class="skeleton-block skeleton-title"></div>
+          <SSkeleton width="40px" height="24px" />
+          <SSkeleton width="320px" height="24px" />
         </div>
         <div class="skeleton-meta-row">
-          <div class="skeleton-block skeleton-meta-item"></div>
-          <div class="skeleton-block skeleton-meta-item skeleton-meta-wide"></div>
-          <div class="skeleton-block skeleton-meta-item"></div>
-          <div class="skeleton-block skeleton-meta-state"></div>
+          <SSkeleton width="56px" height="14px" />
+          <SSkeleton width="100px" height="14px" />
+          <SSkeleton width="56px" height="14px" />
+          <SSkeleton width="48px" height="20px" />
         </div>
       </div>
-      <div class="skeleton-block skeleton-github-btn"></div>
+      <SSkeleton width="140px" height="34px" />
     </div>
 
     <!-- Content grid -->
@@ -25,32 +29,32 @@
       <div class="skeleton-main">
         <!-- Change Summary section -->
         <div class="skeleton-section">
-          <div class="skeleton-block skeleton-section-title"></div>
+          <SSkeleton width="120px" height="14px" />
           <div class="skeleton-stats">
             <div v-for="n in 3" :key="n" class="skeleton-stat">
-              <div class="skeleton-block skeleton-stat-value"></div>
-              <div class="skeleton-block skeleton-stat-label"></div>
+              <SSkeleton width="56px" height="28px" />
+              <SSkeleton width="72px" height="12px" />
             </div>
           </div>
         </div>
 
         <!-- Branch section -->
         <div class="skeleton-section">
-          <div class="skeleton-block skeleton-section-title"></div>
+          <SSkeleton width="120px" height="14px" />
           <div class="skeleton-branch-row">
-            <div class="skeleton-block skeleton-branch-code"></div>
+            <SSkeleton width="140px" height="24px" />
             <span class="skeleton-arrow">&rarr;</span>
-            <div class="skeleton-block skeleton-branch-code skeleton-branch-short"></div>
+            <SSkeleton width="80px" height="24px" />
           </div>
         </div>
 
         <!-- Timeline section -->
         <div class="skeleton-section">
-          <div class="skeleton-block skeleton-section-title"></div>
+          <SSkeleton width="120px" height="14px" />
           <div class="skeleton-timeline">
             <div v-for="n in 3" :key="n" class="skeleton-timeline-item">
-              <div class="skeleton-block skeleton-timeline-label"></div>
-              <div class="skeleton-block skeleton-timeline-value"></div>
+              <SSkeleton width="64px" height="14px" />
+              <SSkeleton width="120px" height="14px" />
             </div>
           </div>
         </div>
@@ -59,8 +63,8 @@
       <!-- Sidebar -->
       <div class="skeleton-sidebar">
         <div class="skeleton-section">
-          <div class="skeleton-block skeleton-section-title"></div>
-          <div class="skeleton-block skeleton-sidebar-content"></div>
+          <SSkeleton width="120px" height="14px" />
+          <SSkeleton width="100%" height="160px" />
         </div>
       </div>
     </div>
@@ -70,71 +74,35 @@
 <style scoped>
 .skeleton-pr-detail {
   max-width: 1200px;
-}
-
-.skeleton-back {
-  width: 52px;
-  height: 16px;
-  margin-bottom: var(--space-4);
-  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .skeleton-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-2);
 }
 
 .skeleton-header-left {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .skeleton-title-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-
-.skeleton-risk-badge {
-  width: 40px;
-  height: 24px;
-  border-radius: var(--radius-full);
-}
-
-.skeleton-title {
-  width: 320px;
-  height: 24px;
-  border-radius: var(--radius-sm);
 }
 
 .skeleton-meta-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-.skeleton-meta-item {
-  width: 56px;
-  height: 14px;
-  border-radius: var(--radius-sm);
-}
-
-.skeleton-meta-wide {
-  width: 100px;
-}
-
-.skeleton-meta-state {
-  width: 48px;
-  height: 20px;
-  border-radius: var(--radius-full);
-}
-
-.skeleton-github-btn {
-  width: 140px;
-  height: 34px;
-  border-radius: var(--radius-md);
 }
 
 .skeleton-grid {
@@ -150,13 +118,9 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   padding: var(--space-5);
-}
-
-.skeleton-section-title {
-  width: 120px;
-  height: 14px;
-  margin-bottom: var(--space-3);
-  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .skeleton-stats {
@@ -170,32 +134,10 @@
   gap: var(--space-1);
 }
 
-.skeleton-stat-value {
-  width: 56px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-}
-
-.skeleton-stat-label {
-  width: 72px;
-  height: 12px;
-  border-radius: var(--radius-sm);
-}
-
 .skeleton-branch-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-
-.skeleton-branch-code {
-  width: 140px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-}
-
-.skeleton-branch-short {
-  width: 80px;
 }
 
 .skeleton-arrow {
@@ -217,23 +159,5 @@
 
 .skeleton-timeline-item:last-child {
   border-bottom: none;
-}
-
-.skeleton-timeline-label {
-  width: 64px;
-  height: 14px;
-  border-radius: var(--radius-sm);
-}
-
-.skeleton-timeline-value {
-  width: 120px;
-  height: 14px;
-  border-radius: var(--radius-sm);
-}
-
-.skeleton-sidebar-content {
-  width: 100%;
-  height: 160px;
-  border-radius: var(--radius-md);
 }
 </style>
