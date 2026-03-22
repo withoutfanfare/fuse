@@ -1,5 +1,29 @@
 # Fuse Roadmap Log
 
+## Cycle: 2026-03-23 03:00
+- **Items added:** none
+- **Items archived:** none
+- **Observations:** Fuse has 7 pending functional items + 3 design system = 10 total. No items added this cycle — 7 pending functional items is already substantial. The heatmap drill-down was completed since last cycle (2026-03-22). Stale review detection (P2, S) and PR dependency awareness (P2, S) form the strongest pair for improving review prioritisation. Label-based filtering (P2, S) and review session auto-save (P2, S) are the most recently added items from last cycle. The inline file-level comments item (P3, L) remains the most ambitious pending feature for closing the review loop entirely. Next cycle should assess completion progress.
+
+## Cycle: 2026-03-22 21:00
+- **Items added:**
+  - [Feature] Add PR label-based quick filters in aggregate and list views (P2, S)
+  - [Quality] Add review session auto-save preventing progress loss on unexpected quit (P2, S)
+- **Items archived:** none
+- **Observations:** Fuse has 6 pending functional items + 3 design system = 9 total. Label-based filtering (P2, S) addresses a gap in the existing filter system — presets cover workflow states (My Reviews, High Risk, Stale) but ignore GitHub labels, which teams use to encode priority, area, and type information that directly affects review prioritisation. Review session auto-save (P2, S) prevents the frustrating loss of triage progress when the app quits unexpectedly — the existing time tracking persists elapsed time, but checklist progress and annotation drafts exist only in component state. Both are small and complement existing completed features. Stale review detection (P2, S) and PR dependency awareness (P2, S) form the strongest pair for improving review prioritisation. The inline file-level comments item (P3, L) remains the most ambitious pending feature.
+
+## Cycle: 2026-03-22 15:00
+- **Items added:**
+  - [Feature] Add PR dependency awareness showing blocking and blocked-by relationships (P2, S)
+- **Items archived:** none
+- **Observations:** Fuse has 4 pending functional items + 3 design system = 7 total. Added dependency awareness (P2, S) to complement the stale review detection item (P2, S) with a second prioritisation dimension: staleness measures urgency, but dependencies measure impact. Knowing which reviews would unblock other work helps reviewers focus their limited review time where it matters most. The item parses existing PR description conventions ("depends on #123", "blocked by #456") — no new data sources required. The inline file-level comments item (P3, L) remains the most ambitious pending feature for closing the review loop entirely. The auto-updater (P3, M) is the key distribution item.
+
+## Cycle: 2026-03-22 09:00
+- **Items added:**
+  - [Quality] Add stale review detection with reminder notifications for unacted reviews (P2, S)
+- **Items archived:** none
+- **Observations:** Fuse has 3 pending functional items + 3 design system = 6 total pending. The existing functional items are auto-updater (P3) and inline file-level comments (P3). Added stale review detection (P2, S) to address the most common code review bottleneck: inaction. The existing notification system (completed) handles event-based alerts (status changes, risk thresholds), but detecting when a review-requested PR has gone unacted for too long is a time-based concern requiring different logic. This is the first P2 functional item in Fuse's pending queue, making it the clear priority. The inline comments item (P3, L) remains the most ambitious pending feature for closing the review loop entirely.
+
 ## Cycle: 2026-03-19 08:00
 - **Items added:**
   - [Feature] Add PR notification system with configurable alerts (P2, M)

@@ -1,5 +1,43 @@
 # Fuse Development Log
 
+## 2026-03-22 — Stale Review Detection, Dependency Badges, and Session Auto-Save
+
+### Summary
+
+Implemented three P2/S roadmap items focused on review prioritisation and session resilience. Full-stack changes: Rust backend commands, SQLite schema updates, TypeScript types, Vue composables, and component integration.
+
+### Items Implemented
+
+1. **Stale review detection with reminder notifications** — `get_stale_review_requests` command in `stale.rs` with configurable threshold (`stale_review_hours` setting, default 24h), escalation levels (1/2/3), and local progress detection (checklist + time log). `useStaleReviews` composable with `stalePrMap` and `attentionItems` computeds. "Needs your attention" section on `AggregateDashboard.vue` with escalation badges. Stale review badges on `PRTable.vue` rows (amber at level 1, red at level 2+).
+
+2. **PR dependency awareness with blocking/blocked-by badges** — Existing `pr_dependencies` table and `compute_dependencies`/`get_pr_dependencies` commands leveraged. `PRTable.vue` now accepts optional `dependencies` prop and renders "Blocks N" (red) and "Needs N" (teal) inline badges beside PR titles using computed `blocksCountMap`/`dependsOnCountMap`.
+
+3. **Review session auto-save** — `save_session_snapshot` and `cleanup_stale_sessions` commands in `stale.rs`. `useSessionAutoSave` composable with 30-second interval persistence of reviewed files. Integrated into `PullRequestDetail.vue` with checklist watcher and "Saved" indicator badge. Auto-save starts after secondary data loads and stops/flushes on unmount.
+
+### Files Created
+
+- `src/composables/useStaleReviews.ts` — Stale review fetching and attention item computation
+- `src/composables/useSessionAutoSave.ts` — Periodic session snapshot persistence
+
+### Files Modified
+
+**Rust:**
+- `src-tauri/src/commands/stale.rs` — Added `StaleReviewItem` struct, `parse_iso_timestamp`, `get_stale_review_requests`, `save_session_snapshot`, `cleanup_stale_sessions`
+- `src-tauri/src/db/migrations.rs` — Added `stale_review_hours` default setting
+- `src-tauri/src/lib.rs` — Registered 3 new commands
+
+**Frontend:**
+- `src/types/index.ts` — Added `StaleReviewItem` interface
+- `src/components/PRTable.vue` — Added stale review badges, dependency badges, new props
+- `src/views/AggregateDashboard.vue` — Added "Needs your attention" section with stale review items
+- `src/views/PullRequestDetail.vue` — Integrated auto-save composable with checklist watcher
+
+### Branch
+
+`feature/stale-detection-dependencies-autosave`
+
+---
+
 ## 2026-03-20 — Batch Implementation of 10 Roadmap Items
 
 ### Summary

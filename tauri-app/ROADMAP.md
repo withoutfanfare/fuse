@@ -123,6 +123,62 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
   - Comment sync status indicator (local draft, posting, posted, failed)
   - Reply-to-comment support for threaded conversations
 
+### [Quality] Add stale review detection with reminder notifications for unacted reviews
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-22
+- **Status:** completed (2026-03-22)
+- **Description:** The existing notification system triggers alerts on PR events (status changes, risk thresholds), but the most common review bottleneck is inaction — a PR sits in "review requested" status for days without anyone starting. Fuse tracks when reviews are requested but has no mechanism to detect and remind the user when they haven't acted within a configurable window. A stale review detector that monitors time-since-review-requested and surfaces progressively urgent reminders would reduce review queue latency and prevent PRs from going stale, which is the single biggest complaint in most code review workflows.
+- **Acceptance criteria:**
+  - Stale review threshold configurable per repository (default: 24 hours since review requested)
+  - Reminder notification triggered when a review-requested PR exceeds the threshold without status change
+  - Reminder escalation: first reminder at threshold, second at 2x threshold, then daily
+  - Stale review badge visible on PR cards in the list view (amber at 1x threshold, red at 2x)
+  - Stale PRs surfaced in a "Needs your attention" section on the aggregate dashboard
+  - Reminders suppressed for PRs the user has already started reviewing (has local checklist progress or time tracked)
+
+### [Feature] Add PR dependency awareness showing blocking and blocked-by relationships
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-22
+- **Status:** completed (2026-03-22)
+- **Description:** In active codebases, PRs often have implicit dependencies — a feature PR blocked by an infrastructure PR, or a migration PR that must merge before the feature consuming it. The PR list shows individual items without relationship context, so reviewers cannot tell which reviews would unblock other work. Detecting dependencies from PR descriptions (common patterns: "depends on #123", "blocked by #456", "after #789 merges") and displaying them as relationship badges on PR cards would help reviewers prioritise reviews that unblock others, reducing overall queue latency. This complements the stale review detection item by adding a second dimension to review prioritisation: urgency (staleness) and impact (blocking others).
+- **Acceptance criteria:**
+  - PR descriptions parsed for dependency patterns: "depends on", "blocked by", "after #N merges", "requires #N"
+  - Dependency relationships displayed as badges on PR cards (e.g. "Blocks #456", "Blocked by #123")
+  - Blocked PRs visually distinguished in the list view (muted or tagged)
+  - Dependency chain visible in PR detail view showing the full blocking/blocked-by graph
+  - Dependencies resolved against the local PR database (cross-repo dependencies noted but not resolved)
+  - Aggregate dashboard shows count of blocking PRs as a priority metric
+
+### [Feature] Add PR label-based quick filters in aggregate and list views
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-22
+- **Status:** pending
+- **Description:** GitHub labels encode priority, area, and type information (bug, feature, breaking-change, needs-review, WIP) that reviewers use to prioritise their review queue. Fuse's existing filter presets (completed) cover workflow states (My Reviews, High Risk, Stale) but ignore label metadata entirely. Adding label-based filtering — as standalone filters or composable with existing presets — would let reviewers focus on specific PR categories (e.g. "show only breaking-change PRs" or "hide WIP PRs"), aligning Fuse's filtering with the GitHub workflow conventions that teams already use to organise their PRs.
+- **Acceptance criteria:**
+  - Labels synced from GitHub during PR fetch and stored in the database alongside PR metadata
+  - Label filter available in the filter bar: dropdown showing all labels across synced PRs with occurrence counts
+  - Multiple labels selectable (OR logic: show PRs with any selected label)
+  - Label filters composable with existing presets and status/risk filters
+  - Label pills displayed on PR cards in the list view (colour-coded matching GitHub label colours)
+  - Aggregate dashboard respects label filters when computing summary statistics
+
+### [Quality] Add review session auto-save preventing progress loss on unexpected quit
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-22
+- **Status:** completed (2026-03-22)
+- **Description:** During an active review session, reviewers accumulate state — checklist items checked, annotations drafted, time tracked, files marked as reviewed. If Fuse crashes, is force-quit, or the system restarts unexpectedly, all unsaved review progress is lost. The existing time tracking (completed) persists elapsed time to the database, but checklist progress and annotation drafts exist only in component state. Periodically auto-saving the full review session state (checklist progress, draft annotations, reviewed files, current position) to the database would prevent the most frustrating review workflow failure — losing 20 minutes of triage progress to an unexpected quit.
+- **Acceptance criteria:**
+  - Review session state auto-saved to the database every 30 seconds while a PR detail view is active
+  - Saved state includes: checklist item statuses, draft annotation text, files marked as reviewed, scroll position
+  - On reopening a PR, saved session state restored with a "Resume previous session?" prompt
+  - Auto-save does not interfere with active editing (save runs on a background timer, not on every keystroke)
+  - Stale session data cleaned up after 7 days or when the PR is closed/merged
+  - Session restore graceful if PR data has changed since the save (new commits, updated files)
+
 ## Design System Adoption
 
 These items implement the @stuntrocket/ui design system to achieve premium visual uniformity across all Tauri applications. Items are ordered by dependency — foundation must complete before migration, migration before polish.
