@@ -367,6 +367,15 @@ export interface ReviewSession {
   status: 'active' | 'paused' | 'completed'
 }
 
+// --- Stale Review Detection ---
+
+export interface StaleReviewItem {
+  pr: PullRequest
+  hoursWaiting: number
+  escalationLevel: number
+  hasLocalProgress: boolean
+}
+
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
 export interface Toast {

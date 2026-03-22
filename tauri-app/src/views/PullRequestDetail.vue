@@ -20,6 +20,7 @@ import { useCommitHistory } from '../composables/useCommitHistory'
 import { useDeploymentStatus } from '../composables/useDeploymentStatus'
 import { useCache } from '../composables/useCache'
 import { useFocusMode } from '../composables/useFocusMode'
+import { useSessionAutoSave } from '../composables/useSessionAutoSave'
 import type { PullRequest, ReviewStatus, ReviewRule, CiCheck, PrCommentsResponse } from '../types'
 import { SResizableSplit, STag } from '@stuntrocket/ui'
 import RiskGauge from '../components/RiskGauge.vue'
@@ -98,6 +99,20 @@ const commentsCache = useCache<PrCommentsResponse>(
 )
 
 const { elapsed: reviewElapsed } = useReviewTimer(prId)
+
+/* Auto-save session: tracks reviewed files and persists every 30s */
+const autoSave = useSessionAutoSave(prId)
+
+watch(
+  checkedRules,
+  (rules) => {
+    const reviewedFiles = diffFiles.value
+      .filter((_, i) => rules[i])
+      .map(f => f.path)
+    autoSave.track(reviewedFiles, null)
+  },
+  { deep: true },
+)
 
 const formattedReviewTime = computed(() => {
   const total = reviewElapsed.value
@@ -178,6 +193,9 @@ onMounted(async () => {
     const [rules] = await Promise.all([rulesPromise, ...secondaryFetches])
     reviewRuleObjects.value = rules as ReviewRule[]
     reviewRules.value = (rules as ReviewRule[]).map(r => r.rule_text)
+
+    // Start auto-saving session progress once data is loaded
+    autoSave.start()
 
     // Handle bookmark deep-link navigation from global bookmarks view or command palette (Phase 5.2/5.3)
     const bookmarkFile = route.query.bookmarkFile as string | undefined
@@ -400,6 +418,7 @@ function formatDate(dateStr: string): string {
           <CiStatusBadge v-if="ciChecks.length > 0" :checks="ciChecks" />
           <ConflictBadge v-if="!pr.merged_at && !pr.closed_at" :status="conflictStatus" :loading="conflictLoading" />
           <span class="timer-badge" title="Time spent reviewing this PR">{{ formattedReviewTime }}</span>
+          <span v-if="autoSave.lastSavedAt.value" class="autosave-badge" title="Session auto-saved">Saved</span>
         </div>
         <DeploymentStatus
           v-if="!pr.merged_at && !pr.closed_at && (deploymentsLoading || deployments.length > 0)"
@@ -903,6 +922,17 @@ function formatDate(dateStr: string): string {
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
   border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.autosave-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-status-success, #22c55e);
+  background: rgba(34, 197, 94, 0.12);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
 }
 
 .deployment-row {
