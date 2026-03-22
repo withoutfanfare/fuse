@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SCard } from '@stuntrocket/ui'
 import type { PullRequest } from '../types'
 import { computeRiskScore, riskColour } from '../composables/useRiskScore'
 import RiskGauge from './RiskGauge.vue'
@@ -42,9 +43,11 @@ const repoDisplay = computed(() => {
 </script>
 
 <template>
-  <div
-    class="pr-card"
+  <SCard
+    variant="glass"
+    hoverable
     :style="{ '--card-risk-color': cardRiskColor }"
+    class="pr-card"
     @click="emit('open-detail', pr.id)"
   >
     <div class="pr-card-header">
@@ -74,28 +77,12 @@ const repoDisplay = computed(() => {
     <div v-if="pr.review_status" class="pr-review-badge" :class="[`review-${pr.review_status}`]">
       {{ pr.review_status.replace(/_/g, ' ') }}
     </div>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
 .pr-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
-}
-
-.pr-card:hover {
-  transform: scale(1.005);
-  box-shadow: var(--shadow-panel);
-  border-color: var(--color-border-hover);
-}
-
-.pr-card:active {
-  transform: scale(0.99);
 }
 
 .pr-card-header {

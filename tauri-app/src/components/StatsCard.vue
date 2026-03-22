@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, toRef } from 'vue'
-import { SSparkline } from '@stuntrocket/ui'
+import { SCard, SSparkline } from '@stuntrocket/ui'
 import { useCountUp } from '@stuntrocket/ui'
 
 const props = defineProps<{
@@ -26,7 +26,7 @@ const renderedValue = computed(() =>
 </script>
 
 <template>
-  <div class="stats-card" :class="[`variant-${variant ?? 'neutral'}`]">
+  <SCard variant="glass" hoverable class="stats-card" :class="[`variant-${variant ?? 'neutral'}`]">
     <div class="stats-value">{{ renderedValue }}</div>
     <div class="stats-label">{{ label }}</div>
     <SSparkline
@@ -35,29 +35,10 @@ const renderedValue = computed(() =>
       :gradient="true"
       class="stats-sparkline"
     />
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
-.stats-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-3) var(--space-4);
-  min-width: 0;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.stats-card:hover {
-  transform: scale(1.005);
-  box-shadow: var(--shadow-panel);
-}
-
-.stats-card:active {
-  transform: scale(0.99);
-}
-
 .stats-value {
   font-size: 28px;
   font-weight: var(--text-display-weight);

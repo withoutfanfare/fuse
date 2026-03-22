@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SCard } from '@stuntrocket/ui'
 import type { PullRequest } from '../types'
 import { computeRiskScore, computeRiskBreakdown, riskLevel, riskColour } from '../composables/useRiskScore'
 
@@ -17,7 +18,7 @@ const breakdown = computed(() => computeRiskBreakdown(props.pr))
 const descriptionExcerpt = computed(() => {
   const body = props.pr.body ?? ''
   if (body.length <= 180) return body
-  return body.slice(0, 180).trimEnd() + '…'
+  return body.slice(0, 180).trimEnd() + '\u2026'
 })
 
 /** Derive a basic CI summary from the PR's review decision field */
@@ -65,66 +66,65 @@ const cardStyle = computed(() => {
 
 <template>
   <Teleport to="body">
-    <div class="hover-preview" :style="cardStyle" role="tooltip">
-      <!-- Header: PR number + title -->
-      <div class="preview-header">
-        <span class="preview-number">#{{ pr.number }}</span>
-        <span class="preview-title">{{ pr.title }}</span>
-      </div>
-
-      <!-- Description excerpt -->
-      <p v-if="descriptionExcerpt" class="preview-description">{{ descriptionExcerpt }}</p>
-
-      <!-- Labels -->
-      <div v-if="pr.labels.length > 0" class="preview-labels">
-        <span v-for="label in pr.labels" :key="label" class="preview-label">{{ label }}</span>
-      </div>
-
-      <!-- CI / review status summary -->
-      <div v-if="ciSummary" class="preview-ci">
-        <span class="ci-dot" :class="[
-          pr.review_decision === 'APPROVED' ? 'ci-pass' :
-          pr.review_decision === 'CHANGES_REQUESTED' || pr.mergeable === 'CONFLICTING' ? 'ci-fail' :
-          'ci-pending'
-        ]" />
-        {{ ciSummary }}
-      </div>
-
-      <!-- Risk breakdown -->
-      <div class="preview-risk">
-        <div class="risk-header">
-          <span class="risk-score" :style="{ color: colour }">Risk {{ score }}/10</span>
-          <span class="risk-level" :class="`risk-${level}`">{{ level }}</span>
+    <div class="hover-preview-wrapper" :style="cardStyle">
+      <SCard variant="glass" class="hover-preview" role="tooltip">
+        <!-- Header: PR number + title -->
+        <div class="preview-header">
+          <span class="preview-number">#{{ pr.number }}</span>
+          <span class="preview-title">{{ pr.title }}</span>
         </div>
-        <div class="risk-factors">
-          <div v-for="factor in breakdown" :key="factor.label" class="risk-factor">
-            <span class="factor-label">{{ factor.label }}</span>
-            <span class="factor-points" :class="factor.points < 0 ? 'factor-neg' : 'factor-pos'">
-              {{ factor.points > 0 ? '+' : '' }}{{ factor.points }}
-            </span>
+
+        <!-- Description excerpt -->
+        <p v-if="descriptionExcerpt" class="preview-description">{{ descriptionExcerpt }}</p>
+
+        <!-- Labels -->
+        <div v-if="pr.labels.length > 0" class="preview-labels">
+          <span v-for="label in pr.labels" :key="label" class="preview-label">{{ label }}</span>
+        </div>
+
+        <!-- CI / review status summary -->
+        <div v-if="ciSummary" class="preview-ci">
+          <span class="ci-dot" :class="[
+            pr.review_decision === 'APPROVED' ? 'ci-pass' :
+            pr.review_decision === 'CHANGES_REQUESTED' || pr.mergeable === 'CONFLICTING' ? 'ci-fail' :
+            'ci-pending'
+          ]" />
+          {{ ciSummary }}
+        </div>
+
+        <!-- Risk breakdown -->
+        <div class="preview-risk">
+          <div class="risk-header">
+            <span class="risk-score" :style="{ color: colour }">Risk {{ score }}/10</span>
+            <span class="risk-level" :class="`risk-${level}`">{{ level }}</span>
+          </div>
+          <div class="risk-factors">
+            <div v-for="factor in breakdown" :key="factor.label" class="risk-factor">
+              <span class="factor-label">{{ factor.label }}</span>
+              <span class="factor-points" :class="factor.points < 0 ? 'factor-neg' : 'factor-pos'">
+                {{ factor.points > 0 ? '+' : '' }}{{ factor.points }}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </SCard>
     </div>
   </Teleport>
 </template>
 
 <style scoped>
-.hover-preview {
+.hover-preview-wrapper {
   position: fixed;
   z-index: 9999;
   width: 340px;
   max-height: 380px;
-  overflow-y: auto;
-  background: var(--color-surface-panel);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card), 0 8px 32px rgba(0, 0, 0, 0.4);
-  padding: var(--space-4);
   pointer-events: none;
   animation: preview-fade-in 0.15s ease-out;
+}
+
+.hover-preview {
+  overflow-y: auto;
+  max-height: 380px;
 }
 
 @keyframes preview-fade-in {
@@ -134,7 +134,7 @@ const cardStyle = computed(() => {
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .hover-preview {
+  .hover-preview-wrapper {
     animation: none;
   }
 }

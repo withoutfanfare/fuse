@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { X, Plus } from 'lucide-vue-next'
+import { SCard, SButton, SInput, SIconButton } from '@stuntrocket/ui'
 import { useGroupsStore } from '../stores/groups'
 import { useRepositoriesStore } from '../stores/repositories'
 import { useConfirm } from '@stuntrocket/ui'
@@ -52,15 +53,13 @@ async function toggleRepo(groupId: number, repoId: number) {
 </script>
 
 <template>
-  <div class="group-manager">
+  <SCard variant="content">
     <h2 class="section-title">Repository Groups</h2>
 
     <form class="create-group-form" @submit.prevent="createGroup">
-      <input
+      <SInput
         v-model="newGroupName"
         placeholder="New group name"
-        class="input-field"
-        required
       />
       <div class="colour-picker">
         <button
@@ -73,10 +72,10 @@ async function toggleRepo(groupId: number, repoId: number) {
           @click="selectedColour = c"
         />
       </div>
-      <button type="submit" class="btn-add" :disabled="creating">
+      <SButton variant="primary" size="sm" :disabled="creating" @click="createGroup">
         <Plus :size="14" />
         {{ creating ? 'Creating...' : 'Create' }}
-      </button>
+      </SButton>
     </form>
 
     <div v-if="groupsStore.groups.length === 0" class="empty-groups">
@@ -84,10 +83,10 @@ async function toggleRepo(groupId: number, repoId: number) {
     </div>
 
     <div v-else class="groups-list">
-      <div
+      <SCard
         v-for="group in groupsStore.groups"
         :key="group.id"
-        class="group-card"
+        variant="nested"
       >
         <div class="group-header">
           <div class="group-name-row">
@@ -95,9 +94,9 @@ async function toggleRepo(groupId: number, repoId: number) {
             <span class="group-name">{{ group.name }}</span>
             <span class="group-count">{{ group.repo_ids.length }} repos</span>
           </div>
-          <button class="btn-delete" @click="deleteGroup(group.id)" title="Delete group">
+          <SIconButton variant="danger" size="sm" tooltip="Delete group" @click="deleteGroup(group.id)">
             <X :size="14" />
-          </button>
+          </SIconButton>
         </div>
         <div class="group-repos">
           <button
@@ -110,20 +109,12 @@ async function toggleRepo(groupId: number, repoId: number) {
             {{ repo.owner }}/{{ repo.name }}
           </button>
         </div>
-      </div>
+      </SCard>
     </div>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
-.group-manager {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
-}
-
 .section-title {
   font-size: 16px;
   font-weight: 600;
@@ -137,28 +128,6 @@ async function toggleRepo(groupId: number, repoId: number) {
   gap: var(--space-3);
   margin-bottom: var(--space-5);
   flex-wrap: wrap;
-}
-
-.input-field {
-  flex: 1;
-  min-width: 180px;
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-primary);
-  font-size: 13px;
-  transition: border-color var(--transition-fast);
-}
-
-.input-field:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.input-field::placeholder {
-  color: var(--color-text-muted);
 }
 
 .colour-picker {
@@ -186,35 +155,6 @@ async function toggleRepo(groupId: number, repoId: number) {
   box-shadow: 0 0 0 2px var(--color-surface-base);
 }
 
-.btn-add {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  font-weight: 600;
-  padding: var(--space-2) var(--space-4);
-  white-space: nowrap;
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-
-.btn-add:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.btn-add:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-add:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .empty-groups {
   color: var(--color-text-muted);
   font-size: 13px;
@@ -225,13 +165,6 @@ async function toggleRepo(groupId: number, repoId: number) {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-.group-card {
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
 }
 
 .group-header {
@@ -263,27 +196,6 @@ async function toggleRepo(groupId: number, repoId: number) {
 .group-count {
   font-size: 12px;
   color: var(--color-text-muted);
-}
-
-.btn-delete {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0;
-  transition: all var(--transition-fast);
-}
-
-.btn-delete:hover {
-  color: var(--color-status-danger);
-  background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.3);
 }
 
 .group-repos {
