@@ -10,11 +10,10 @@ import { useCommandPalette } from './composables/useCommandPalette'
 import { useAutoSync } from './composables/useAutoSync'
 import { useFocusMode } from './composables/useFocusMode'
 import { useTheme } from './composables/useTheme'
+import { SRouteProgressBar, SCommandPalette } from '@stuntrocket/ui'
 import AppSidebar from './components/layout/AppSidebar.vue'
 import AppHeader from './components/layout/AppHeader.vue'
-import TitleBar from './components/layout/TitleBar.vue'
 import ToastContainer from './components/ToastContainer.vue'
-import { SRouteProgressBar, SCommandPalette } from '@stuntrocket/ui'
 const NotificationDrawer = defineAsyncComponent(() => import('./components/NotificationDrawer.vue'))
 import ConfirmDialog from './components/ConfirmDialog.vue'
 const ShortcutOverlay = defineAsyncComponent(() => import('./components/ShortcutOverlay.vue'))
@@ -110,19 +109,28 @@ function onCommandSelectByIndex(index: number) {
 
 <template>
   <div class="app-root">
-    <!-- Custom title bar -->
-    <TitleBar />
+    <!--
+      AppHeader now uses STopbar which provides:
+      - Fixed position at top (52px height)
+      - macOS traffic light padding (drag region)
+      This replaces the old custom TitleBar entirely.
+    -->
+    <AppHeader
+      :syncing="prStore.syncing"
+      :last-synced="prStore.lastSynced"
+      :auto-sync-active="isPolling"
+      @sync-requested="prStore.syncAll()"
+    />
 
-    <!-- App content -->
+    <!--
+      App layout: sidebar + main.
+      SAppShell was considered but not used here because AppSidebar already
+      wraps its content in SSidebar, which provides its own container styling.
+      Using SAppShell would create a redundant double-wrapper.
+    -->
     <div class="app-layout">
       <AppSidebar />
       <div class="app-main">
-        <AppHeader
-          :syncing="prStore.syncing"
-          :last-synced="prStore.lastSynced"
-          :auto-sync-active="isPolling"
-          @sync-requested="prStore.syncAll()"
-        />
         <main class="app-content">
           <SRouteProgressBar :loading="routeLoading" />
           <!-- Navigation loading overlay — shows immediately on tray PR clicks -->
@@ -196,7 +204,8 @@ function onCommandSelectByIndex(index: number) {
 
 .app-layout {
   display: flex;
-  height: calc(100% - 28px);
+  height: calc(100% - 52px);
+  margin-top: 52px;
   position: relative;
   z-index: 10;
 }

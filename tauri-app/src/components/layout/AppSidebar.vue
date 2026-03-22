@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { LayoutDashboard, GitPullRequest, FolderGit2, Settings, ChevronLeft, ChevronRight, Users, Clock, BarChart3, Bookmark, LayoutGrid } from 'lucide-vue-next'
+import { SSidebar, SSidebarLink } from '@stuntrocket/ui'
 import { usePullRequestsStore } from '../../stores/pullRequests'
 import { useSidebarState } from '../../composables/useSidebarState'
 import { useRecentPrs } from '../../composables/useRecentPrs'
@@ -13,6 +14,10 @@ const { recentPrs } = useRecentPrs()
 const { bookmarkCount, fetchBookmarkCount } = useGlobalBookmarks()
 
 const pendingCount = computed(() => prStore.pendingReview.length)
+
+const sidebarWidth = computed(() =>
+  collapsed.value ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width)'
+)
 
 onMounted(() => {
   fetchBookmarkCount()
@@ -46,38 +51,40 @@ const navGroups = [
 </script>
 
 <template>
-  <aside class="sidebar" :class="{ 'sidebar--collapsed': collapsed }">
-    <nav class="sidebar-nav">
-      <div v-for="(group, gi) in navGroups" :key="group.label" class="nav-group">
-        <div v-if="!collapsed" class="nav-group-label">{{ group.label }}</div>
-        <div v-else-if="gi > 0" class="nav-group-divider"></div>
-        <router-link
-          v-for="item in group.items"
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :class="{ active: route.path.startsWith(item.path) }"
-          :title="collapsed ? item.label : undefined"
-        >
-          <span class="nav-icon"><component :is="item.icon" :size="18" /></span>
-          <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
-          <span
-            v-if="item.badge && pendingCount > 0"
-            class="nav-badge"
-            :class="{ 'nav-badge--small': collapsed }"
+  <SSidebar :width="sidebarWidth" class="app-sidebar" :class="{ 'app-sidebar--collapsed': collapsed }">
+    <template #header>
+      <!-- Navigation groups -->
+      <nav class="sidebar-nav">
+        <div v-for="(group, gi) in navGroups" :key="group.label" class="nav-group">
+          <div v-if="!collapsed" class="nav-group-label">{{ group.label }}</div>
+          <div v-else-if="gi > 0" class="nav-group-divider"></div>
+          <SSidebarLink
+            v-for="item in group.items"
+            :key="item.path"
+            :to="item.path"
+            :active="route.path.startsWith(item.path)"
+            :title="collapsed ? item.label : undefined"
           >
-            {{ pendingCount }}
-          </span>
-          <span
-            v-if="item.bookmarkBadge && bookmarkCount > 0"
-            class="nav-badge"
-            :class="{ 'nav-badge--small': collapsed }"
-          >
-            {{ bookmarkCount }}
-          </span>
-        </router-link>
-      </div>
-    </nav>
+            <span class="nav-icon"><component :is="item.icon" :size="18" /></span>
+            <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
+            <span
+              v-if="item.badge && pendingCount > 0"
+              class="nav-badge"
+              :class="{ 'nav-badge--small': collapsed }"
+            >
+              {{ pendingCount }}
+            </span>
+            <span
+              v-if="item.bookmarkBadge && bookmarkCount > 0"
+              class="nav-badge"
+              :class="{ 'nav-badge--small': collapsed }"
+            >
+              {{ bookmarkCount }}
+            </span>
+          </SSidebarLink>
+        </div>
+      </nav>
+    </template>
 
     <!-- Recently visited PRs -->
     <section v-if="recentPrs.length > 0" class="recent-prs">
@@ -85,48 +92,36 @@ const navGroups = [
         <Clock :size="14" class="recent-prs-icon" />
         <span v-if="!collapsed" class="recent-prs-label">Recent</span>
       </div>
-      <router-link
+      <SSidebarLink
         v-for="entry in recentPrs"
         :key="entry.id"
-        :to="{ name: 'pr-detail', params: { id: entry.id } }"
-        class="recent-pr-item"
+        :to="{ name: 'pr-detail', params: { id: entry.id } } as any"
         :title="collapsed ? `#${entry.number} ${entry.title}` : undefined"
       >
         <span class="recent-pr-number">#{{ entry.number }}</span>
         <span v-if="!collapsed" class="recent-pr-title">{{ entry.title }}</span>
-      </router-link>
+      </SSidebarLink>
     </section>
 
-    <div class="sidebar-footer">
+    <template #footer>
       <button class="toggle-btn" :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click="toggle">
         <component :is="collapsed ? ChevronRight : ChevronLeft" :size="16" />
       </button>
-    </div>
-  </aside>
+    </template>
+  </SSidebar>
 </template>
 
 <style scoped>
-.sidebar {
-  width: var(--sidebar-width);
-  background: var(--color-surface-chrome);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
+.app-sidebar {
   flex-shrink: 0;
-  box-shadow: var(--shadow-panel), 0 0 0 1px var(--color-surface-hover);
   z-index: 20;
   transition: width var(--transition-normal);
-  overflow: hidden;
   margin: var(--space-2) 0 var(--space-2) var(--space-2);
-}
-
-.sidebar--collapsed {
-  width: var(--sidebar-width-collapsed);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel), 0 0 0 1px var(--color-surface-hover);
 }
 
 .sidebar-nav {
-  padding: var(--space-3) var(--space-2);
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -151,36 +146,6 @@ const navGroups = [
   height: 1px;
   background: var(--color-border-default);
   margin: var(--space-1) var(--space-2);
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  transition: background var(--transition-fast), color var(--transition-fast);
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.sidebar--collapsed .nav-item {
-  justify-content: center;
-  padding: var(--space-2);
-  gap: 0;
-}
-
-.nav-item:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-  text-decoration: none;
-}
-
-.nav-item.active {
-  color: var(--color-accent);
-  font-weight: 500;
 }
 
 .nav-icon {
@@ -222,13 +187,8 @@ const navGroups = [
   padding: 0 3px;
 }
 
-.sidebar--collapsed .nav-item {
+.app-sidebar--collapsed :deep(.s-sidebar-link) {
   position: relative;
-}
-
-.sidebar-footer {
-  padding: var(--space-2);
-  display: flex;
   justify-content: center;
 }
 
@@ -244,6 +204,7 @@ const navGroups = [
   color: var(--color-text-muted);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  margin: 0 auto;
 }
 
 .toggle-btn:hover {
@@ -254,7 +215,6 @@ const navGroups = [
 
 /* Recently visited PRs */
 .recent-prs {
-  padding: var(--space-2) var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-0-5);
@@ -273,38 +233,13 @@ const navGroups = [
   letter-spacing: 0.05em;
 }
 
-.sidebar--collapsed .recent-prs-header {
+.app-sidebar--collapsed .recent-prs-header {
   justify-content: center;
   padding: var(--space-1) var(--space-2);
 }
 
 .recent-prs-icon {
   flex-shrink: 0;
-}
-
-.recent-pr-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  font-size: 12px;
-  transition: background var(--transition-fast), color var(--transition-fast);
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.sidebar--collapsed .recent-pr-item {
-  justify-content: center;
-  padding: var(--space-1) var(--space-2);
-}
-
-.recent-pr-item:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-  text-decoration: none;
 }
 
 .recent-pr-number {
