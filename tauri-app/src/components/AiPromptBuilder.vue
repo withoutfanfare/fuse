@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ClipboardCopy, Sparkles, FileText, CheckCircle, XCircle } from 'lucide-vue-next'
+import { ClipboardCopy, FileText, CheckCircle, XCircle } from 'lucide-vue-next'
+import { SButton, STextarea, SBadge, SCard, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
 import type { PullRequest, ReviewRule, ParsedAiResponse } from '../types'
 import { usePromptBuilder } from '../composables/usePromptBuilder'
 import { useResponseParser } from '../composables/useResponseParser'
@@ -47,12 +48,13 @@ function handleParse() {
   parsedResult.value = parseResponse(pastedResponse.value)
 }
 
-function severityClass(severity: string): string {
+/** Map severity to SBadge variant */
+function severityVariant(severity: string): 'error' | 'warning' | 'info' | 'default' {
   switch (severity) {
-    case 'critical': return 'severity-critical'
-    case 'warning': return 'severity-warning'
-    case 'suggestion': return 'severity-suggestion'
-    default: return ''
+    case 'critical': return 'error'
+    case 'warning': return 'warning'
+    case 'suggestion': return 'info'
+    default: return 'default'
   }
 }
 
@@ -69,61 +71,57 @@ function severityLabel(severity: string): string {
 <template>
   <div class="ai-prompt-builder">
     <div class="builder-header">
-      <h2 class="section-title">
-        <Sparkles :size="16" />
-        AI Review
-      </h2>
-      <button class="btn-generate" @click="handleGenerate">
+      <SSectionHeader title="AI Review" />
+      <SButton variant="primary" size="sm" @click="handleGenerate">
         <FileText :size="14" />
         {{ hasPrompt ? 'Regenerate Prompt' : 'Generate Prompt' }}
-      </button>
+      </SButton>
     </div>
 
     <!-- Generated Prompt -->
-    <div v-if="promptVisible && hasPrompt" class="prompt-section">
+    <SCard v-if="promptVisible && hasPrompt" variant="content">
       <div class="prompt-header">
         <span class="prompt-label">Generated Prompt</span>
-        <button class="btn-copy" @click="handleCopy">
+        <SButton variant="ghost" size="sm" @click="handleCopy">
           <ClipboardCopy :size="14" />
           Copy to Clipboard
-        </button>
+        </SButton>
       </div>
       <pre class="prompt-preview">{{ generatedPrompt }}</pre>
-    </div>
+    </SCard>
 
     <!-- Paste Response -->
     <div v-if="hasPrompt" class="response-section">
-      <label class="response-label" for="ai-response">Paste AI Response</label>
-      <textarea
-        id="ai-response"
+      <STextarea
         v-model="pastedResponse"
-        class="response-textarea"
+        label="Paste AI Response"
         placeholder="Paste the AI's review response here..."
-        rows="8"
+        :rows="8"
       />
-      <button
-        class="btn-parse"
+      <SButton
+        variant="secondary"
+        size="sm"
         :disabled="!pastedResponse.trim()"
         @click="handleParse"
       >
         Parse Response
-      </button>
+      </SButton>
     </div>
 
     <!-- Parsed Results -->
     <div v-if="parsedResult" class="results-section">
       <!-- Approval Status -->
-      <div class="approval-badge" :class="parsedResult.approved ? 'approved' : 'not-approved'">
-        <CheckCircle v-if="parsedResult.approved" :size="16" />
-        <XCircle v-else :size="16" />
+      <SBadge :variant="parsedResult.approved ? 'success' : 'error'">
+        <CheckCircle v-if="parsedResult.approved" :size="14" />
+        <XCircle v-else :size="14" />
         {{ parsedResult.approved ? 'Approved' : 'Not Approved' }}
-      </div>
+      </SBadge>
 
       <!-- Summary -->
-      <div class="result-card">
+      <SCard variant="nested">
         <h3 class="result-card-title">Summary</h3>
         <p class="result-card-body">{{ parsedResult.summary }}</p>
-      </div>
+      </SCard>
 
       <!-- Issues -->
       <div v-if="parsedResult.issues.length > 0" class="issues-list">
@@ -133,18 +131,19 @@ function severityLabel(severity: string): string {
           :key="idx"
           class="issue-item"
         >
-          <span class="severity-badge" :class="severityClass(issue.severity)">
+          <SBadge :variant="severityVariant(issue.severity)">
             {{ severityLabel(issue.severity) }}
-          </span>
+          </SBadge>
           <span class="issue-description">{{ issue.description }}</span>
           <span v-if="issue.file" class="issue-file">{{ issue.file }}</span>
         </div>
       </div>
 
-      <div v-else class="no-issues">
-        <CheckCircle :size="16" />
-        No issues found
-      </div>
+      <SEmptyState v-else title="No issues found">
+        <template #icon>
+          <CheckCircle :size="16" />
+        </template>
+      </SEmptyState>
     </div>
   </div>
 </template>
@@ -162,54 +161,7 @@ function severityLabel(severity: string): string {
   justify-content: space-between;
 }
 
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
-.btn-generate {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  background: var(--color-accent-muted);
-  color: var(--color-accent);
-  font-weight: 600;
-  font-size: 13px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(20, 184, 166, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-generate:hover {
-  background: rgba(20, 184, 166, 0.3);
-  border-color: rgba(20, 184, 166, 0.5);
-}
-
-.btn-generate:active {
-  transform: scale(0.97);
-}
-
-.btn-generate:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
 /* Prompt Section */
-.prompt-section {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-
 .prompt-header {
   display: flex;
   align-items: center;
@@ -224,32 +176,6 @@ function severityLabel(severity: string): string {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.btn-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-default);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-copy:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-hover);
-}
-
-.btn-copy:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
 }
 
 .prompt-preview {
@@ -272,105 +198,11 @@ function severityLabel(severity: string): string {
   gap: var(--space-2);
 }
 
-.response-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.response-textarea {
-  background: var(--color-surface-input);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.5;
-  resize: vertical;
-  transition: border-color var(--transition-fast);
-}
-
-.response-textarea::placeholder {
-  color: var(--color-text-muted);
-}
-
-.response-textarea:focus {
-  outline: none;
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-}
-
-.btn-parse {
-  align-self: flex-start;
-  background: var(--color-surface-raised);
-  color: var(--color-text-primary);
-  font-weight: 600;
-  font-size: 13px;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-default);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-parse:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-}
-
-.btn-parse:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-parse:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-parse:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
 /* Results Section */
 .results-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-
-.approval-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  align-self: flex-start;
-  font-weight: 600;
-  font-size: 13px;
-  padding: var(--space-1-5) var(--space-3);
-  border-radius: var(--radius-full);
-}
-
-.approval-badge.approved {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--color-status-success);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.approval-badge.not-approved {
-  background: rgba(220, 38, 38, 0.2);
-  color: var(--color-status-danger);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-}
-
-.result-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
 }
 
 .result-card-title {
@@ -411,31 +243,6 @@ function severityLabel(severity: string): string {
   padding: var(--space-3);
 }
 
-.severity-badge {
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.severity-critical {
-  background: rgba(220, 38, 38, 0.2);
-  color: var(--color-status-danger);
-}
-
-.severity-warning {
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-}
-
-.severity-suggestion {
-  background: rgba(59, 130, 246, 0.2);
-  color: var(--color-status-info);
-}
-
 .issue-description {
   font-size: 13px;
   line-height: 1.5;
@@ -451,17 +258,5 @@ function severityLabel(severity: string): string {
   background: var(--color-surface-raised);
   padding: 1px var(--space-2);
   border-radius: var(--radius-sm);
-}
-
-.no-issues {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 13px;
-  color: var(--color-status-success);
-  padding: var(--space-3);
-  background: rgba(34, 197, 94, 0.1);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 </style>

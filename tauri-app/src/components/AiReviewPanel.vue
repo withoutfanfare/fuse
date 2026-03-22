@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { SButton, SSpinner, SBadge, SCard, SEmptyState, SNoticeBanner } from '@stuntrocket/ui'
 import { useAiReview } from '../composables/useAiReview'
 import type { PullRequest } from '../types'
 import MarkdownRenderer from './MarkdownRenderer.vue'
@@ -35,44 +36,43 @@ onMounted(() => {
   <div class="ai-review-panel">
     <div class="panel-header">
       <h2 class="section-title">AI Review</h2>
-      <button
-        class="btn-run-review"
+      <SButton
+        variant="primary"
+        size="sm"
         :disabled="reviewing"
+        :loading="reviewing"
         @click="handleRunReview"
       >
-        {{ reviewing ? 'Reviewing…' : 'Run Review' }}
-      </button>
+        {{ reviewing ? 'Reviewing...' : 'Run Review' }}
+      </SButton>
     </div>
 
     <div v-if="reviewing" class="review-loading">
-      <div class="loading-indicator">
-        <span class="loading-dot" />
-        <span class="loading-dot" />
-        <span class="loading-dot" />
-      </div>
-      <p class="loading-text">Creating worktree and running Claude… this may take up to 60 seconds</p>
+      <SSpinner />
+      <p class="loading-text">Creating worktree and running Claude... this may take up to 60 seconds</p>
     </div>
 
-    <div v-if="error" class="review-error">
+    <SNoticeBanner v-if="error" variant="danger">
       {{ error }}
-    </div>
+    </SNoticeBanner>
 
     <div v-if="hasReviews" class="reviews-list">
       <!-- Review comparison toggle — shown when 2+ reviews exist -->
       <div v-if="canCompare" class="comparison-toggle-wrapper">
-        <button
-          class="btn-compare"
+        <SButton
+          variant="ghost"
+          size="sm"
           @click="comparisonExpanded = !comparisonExpanded"
         >
           {{ comparisonExpanded ? 'Hide Comparison' : 'Compare Reviews' }}
-          <span class="compare-count">{{ reviews.length }} reviews</span>
-        </button>
+          <SBadge variant="count">{{ reviews.length }} reviews</SBadge>
+        </SButton>
       </div>
 
       <!-- AI Review Comparison panel -->
-      <div v-if="canCompare && comparisonExpanded" class="comparison-container">
+      <SCard v-if="canCompare && comparisonExpanded" variant="nested">
         <AiReviewComparison :reviews="reviews" />
-      </div>
+      </SCard>
 
       <details
         v-for="review in reviews"
@@ -82,7 +82,7 @@ onMounted(() => {
       >
         <summary class="review-summary">
           <span class="review-date">{{ formatDate(review.created_at) }}</span>
-          <span class="review-branch">{{ review.worktree_branch }}</span>
+          <SBadge variant="info">{{ review.worktree_branch }}</SBadge>
         </summary>
         <div class="review-content">
           <MarkdownRenderer :content="review.review_text" />
@@ -90,9 +90,11 @@ onMounted(() => {
       </details>
     </div>
 
-    <div v-else-if="!reviewing && !error" class="review-empty">
-      No AI reviews yet. Click "Run Review" to generate one.
-    </div>
+    <SEmptyState
+      v-else-if="!reviewing && !error"
+      title="No AI reviews yet"
+      description="Click &quot;Run Review&quot; to generate one."
+    />
   </div>
 </template>
 
@@ -116,32 +118,6 @@ onMounted(() => {
   margin: 0;
 }
 
-.btn-run-review {
-  background: rgba(59, 130, 246, 0.2);
-  color: var(--color-status-info);
-  font-weight: 600;
-  font-size: 13px;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-run-review:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.5);
-}
-
-.btn-run-review:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-run-review:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .review-loading {
   display: flex;
   flex-direction: column;
@@ -150,40 +126,10 @@ onMounted(() => {
   padding: var(--space-6);
 }
 
-.loading-indicator {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.loading-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-status-info);
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-.loading-dot:nth-child(2) { animation-delay: 0.2s; }
-.loading-dot:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes pulse {
-  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1); }
-}
-
 .loading-text {
   font-size: 13px;
   color: var(--color-text-muted);
   text-align: center;
-}
-
-.review-error {
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  font-size: 13px;
-  color: var(--color-status-danger);
 }
 
 .reviews-list {
@@ -218,72 +164,14 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.review-branch {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--color-status-info);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-sm);
-}
-
 .review-content {
   padding: var(--space-4);
   border-top: 1px solid var(--color-border-default);
-}
-
-.review-empty {
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-4);
 }
 
 /* Review comparison toggle */
 .comparison-toggle-wrapper {
   display: flex;
   justify-content: flex-end;
-}
-
-.btn-compare {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
-  font-weight: 600;
-  font-size: 12px;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-compare:hover {
-  background: rgba(139, 92, 246, 0.25);
-  border-color: rgba(139, 92, 246, 0.4);
-}
-
-.btn-compare:active {
-  transform: scale(0.97);
-}
-
-.btn-compare:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
-}
-
-.compare-count {
-  font-weight: 400;
-  opacity: 0.7;
-  font-size: 11px;
-}
-
-.comparison-container {
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  background: rgba(139, 92, 246, 0.04);
 }
 </style>

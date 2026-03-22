@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { watch, computed } from 'vue'
+import { SSelect, SBadge, SListRow, SSectionHeader, SEmptyState } from '@stuntrocket/ui'
 import { useAiReviewComparison } from '../composables/useAiReviewComparison'
 import type { AiReview, ComparedIssue, AiReviewIssueSeverity } from '../types'
 
@@ -38,6 +39,17 @@ const totalNew = computed(() => comparison.value?.newIssues.length ?? 0)
 const totalResolved = computed(() => comparison.value?.resolvedIssues.length ?? 0)
 const totalPersistent = computed(() => comparison.value?.persistentIssues.length ?? 0)
 
+/** String-based wrappers for SSelect compatibility */
+const olderReviewIdStr = computed({
+  get: () => olderReviewId.value != null ? String(olderReviewId.value) : '',
+  set: (val: string) => { olderReviewId.value = val ? Number(val) : null },
+})
+
+const newerReviewIdStr = computed({
+  get: () => newerReviewId.value != null ? String(newerReviewId.value) : '',
+  set: (val: string) => { newerReviewId.value = val ? Number(val) : null },
+})
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short',
@@ -56,38 +68,44 @@ function statusIcon(issue: ComparedIssue): string {
   if (issue.status === 'resolved') return '-'
   return '='
 }
+
+function statusVariant(issue: ComparedIssue): 'success' | 'warning' | 'default' {
+  if (issue.status === 'resolved') return 'success'
+  if (issue.status === 'new') return 'warning'
+  return 'default'
+}
 </script>
 
 <template>
   <div class="ai-comparison">
     <div class="comparison-header">
-      <h3 class="comparison-title">Review Comparison</h3>
+      <SSectionHeader title="Review Comparison" />
       <div class="comparison-selectors">
-        <label class="selector-group">
+        <div class="selector-group">
           <span class="selector-label">Older</span>
-          <select v-model="olderReviewId" class="selector-input">
+          <SSelect v-model="olderReviewIdStr">
             <option
               v-for="review in reviews"
               :key="review.id"
-              :value="review.id"
+              :value="String(review.id)"
             >
               {{ formatDate(review.created_at) }}
             </option>
-          </select>
-        </label>
+          </SSelect>
+        </div>
         <span class="selector-arrow">vs</span>
-        <label class="selector-group">
+        <div class="selector-group">
           <span class="selector-label">Newer</span>
-          <select v-model="newerReviewId" class="selector-input">
+          <SSelect v-model="newerReviewIdStr">
             <option
               v-for="review in reviews"
               :key="review.id"
-              :value="review.id"
+              :value="String(review.id)"
             >
               {{ formatDate(review.created_at) }}
             </option>
-          </select>
-        </label>
+          </SSelect>
+        </div>
       </div>
     </div>
 
@@ -95,15 +113,15 @@ function statusIcon(issue: ComparedIssue): string {
       <!-- Summary counters -->
       <div class="comparison-summary">
         <div class="summary-stat resolved">
-          <span class="summary-count">{{ totalResolved }}</span>
+          <SBadge variant="success">{{ totalResolved }}</SBadge>
           <span class="summary-label">Resolved</span>
         </div>
         <div class="summary-stat new-issues">
-          <span class="summary-count">{{ totalNew }}</span>
+          <SBadge variant="warning">{{ totalNew }}</SBadge>
           <span class="summary-label">New</span>
         </div>
         <div class="summary-stat persistent">
-          <span class="summary-count">{{ totalPersistent }}</span>
+          <SBadge variant="default">{{ totalPersistent }}</SBadge>
           <span class="summary-label">Persistent</span>
         </div>
       </div>
@@ -111,55 +129,63 @@ function statusIcon(issue: ComparedIssue): string {
       <!-- Resolved issues -->
       <div v-if="comparison!.resolvedIssues.length > 0" class="issue-group">
         <h4 class="group-heading resolved-heading">Resolved Issues</h4>
-        <div
+        <SListRow
           v-for="(issue, i) in comparison!.resolvedIssues"
           :key="`resolved-${i}`"
-          class="issue-row resolved-row"
         >
-          <span class="issue-status-badge resolved-badge">{{ statusIcon(issue) }}</span>
-          <span class="issue-severity" :class="`severity-${issue.severity}`">{{ severityIcon(issue.severity) }}</span>
-          <code v-if="issue.file" class="issue-file">{{ issue.file }}</code>
-          <span class="issue-description">{{ issue.description }}</span>
-        </div>
+          <template #default>
+            <div class="issue-row-content">
+              <SBadge :variant="statusVariant(issue)">{{ statusIcon(issue) }}</SBadge>
+              <span class="issue-severity" :class="`severity-${issue.severity}`">{{ severityIcon(issue.severity) }}</span>
+              <code v-if="issue.file" class="issue-file">{{ issue.file }}</code>
+              <span class="issue-description">{{ issue.description }}</span>
+            </div>
+          </template>
+        </SListRow>
       </div>
 
       <!-- New issues -->
       <div v-if="comparison!.newIssues.length > 0" class="issue-group">
         <h4 class="group-heading new-heading">New Issues</h4>
-        <div
+        <SListRow
           v-for="(issue, i) in comparison!.newIssues"
           :key="`new-${i}`"
-          class="issue-row new-row"
         >
-          <span class="issue-status-badge new-badge">{{ statusIcon(issue) }}</span>
-          <span class="issue-severity" :class="`severity-${issue.severity}`">{{ severityIcon(issue.severity) }}</span>
-          <code v-if="issue.file" class="issue-file">{{ issue.file }}</code>
-          <span class="issue-description">{{ issue.description }}</span>
-        </div>
+          <template #default>
+            <div class="issue-row-content">
+              <SBadge :variant="statusVariant(issue)">{{ statusIcon(issue) }}</SBadge>
+              <span class="issue-severity" :class="`severity-${issue.severity}`">{{ severityIcon(issue.severity) }}</span>
+              <code v-if="issue.file" class="issue-file">{{ issue.file }}</code>
+              <span class="issue-description">{{ issue.description }}</span>
+            </div>
+          </template>
+        </SListRow>
       </div>
 
       <!-- Persistent issues -->
       <div v-if="comparison!.persistentIssues.length > 0" class="issue-group">
         <h4 class="group-heading persistent-heading">Persistent Issues</h4>
-        <div
+        <SListRow
           v-for="(issue, i) in comparison!.persistentIssues"
           :key="`persistent-${i}`"
-          class="issue-row persistent-row"
         >
-          <span class="issue-status-badge persistent-badge">{{ statusIcon(issue) }}</span>
-          <span class="issue-severity" :class="`severity-${issue.severity}`">{{ severityIcon(issue.severity) }}</span>
-          <code v-if="issue.file" class="issue-file">{{ issue.file }}</code>
-          <span class="issue-description">{{ issue.description }}</span>
-        </div>
+          <template #default>
+            <div class="issue-row-content">
+              <SBadge :variant="statusVariant(issue)">{{ statusIcon(issue) }}</SBadge>
+              <span class="issue-severity" :class="`severity-${issue.severity}`">{{ severityIcon(issue.severity) }}</span>
+              <code v-if="issue.file" class="issue-file">{{ issue.file }}</code>
+              <span class="issue-description">{{ issue.description }}</span>
+            </div>
+          </template>
+        </SListRow>
       </div>
 
       <!-- Empty state when no issues found in either review -->
-      <div
+      <SEmptyState
         v-if="totalNew === 0 && totalResolved === 0 && totalPersistent === 0"
-        class="comparison-empty"
-      >
-        No structured issues found in either review. The reviews may not follow the expected format.
-      </div>
+        title="No structured issues found"
+        description="The reviews may not follow the expected format."
+      />
     </div>
   </div>
 </template>
@@ -175,13 +201,6 @@ function statusIcon(issue: ComparedIssue): string {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-
-.comparison-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin: 0;
 }
 
 .comparison-selectors {
@@ -202,24 +221,6 @@ function statusIcon(issue: ComparedIssue): string {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.selector-input {
-  background: var(--color-surface-input);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-primary);
-  font-size: 12px;
-  font-family: var(--font-mono);
-  padding: var(--space-1) var(--space-2);
-  cursor: pointer;
-  transition: border-color var(--transition-fast);
-}
-
-.selector-input:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 2px var(--color-accent-muted);
-  outline: none;
 }
 
 .selector-arrow {
@@ -247,30 +248,12 @@ function statusIcon(issue: ComparedIssue): string {
   flex: 1;
 }
 
-.summary-count {
-  font-size: 20px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-}
-
 .summary-label {
   font-size: 11px;
   font-weight: 500;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-}
-
-.summary-stat.resolved .summary-count {
-  color: var(--color-status-success);
-}
-
-.summary-stat.new-issues .summary-count {
-  color: var(--color-status-warning);
-}
-
-.summary-stat.persistent .summary-count {
-  color: var(--color-text-muted);
 }
 
 /* Issue groups */
@@ -292,54 +275,12 @@ function statusIcon(issue: ComparedIssue): string {
 .new-heading { color: var(--color-status-warning); }
 .persistent-heading { color: var(--color-text-muted); }
 
-.issue-row {
+.issue-row-content {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
   font-size: 12px;
   line-height: 1.4;
-}
-
-.resolved-row {
-  background: rgba(34, 197, 94, 0.06);
-}
-
-.new-row {
-  background: rgba(234, 179, 8, 0.06);
-}
-
-.persistent-row {
-  background: rgba(100, 116, 139, 0.06);
-}
-
-.issue-status-badge {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-}
-
-.resolved-badge {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--color-status-success);
-}
-
-.new-badge {
-  background: rgba(234, 179, 8, 0.2);
-  color: var(--color-status-warning);
-}
-
-.persistent-badge {
-  background: rgba(100, 116, 139, 0.2);
-  color: var(--color-text-muted);
 }
 
 .issue-severity {
@@ -370,12 +311,5 @@ function statusIcon(issue: ComparedIssue): string {
   color: var(--color-text-secondary);
   flex: 1;
   min-width: 0;
-}
-
-.comparison-empty {
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-4);
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Copy, Send, FileText } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { Copy, Send, FileText, X } from 'lucide-vue-next'
+import { SButton, SCard } from '@stuntrocket/ui'
 import { useReviewSummary } from '../composables/useReviewSummary'
 import { useToastStore } from '../stores/toast'
 import MarkdownRenderer from './MarkdownRenderer.vue'
@@ -55,71 +56,49 @@ async function handlePost() {
 
 <template>
   <div class="review-summary-panel">
-    <button
+    <SButton
       v-if="!showPreview"
-      class="btn-generate"
+      variant="primary"
+      size="sm"
       @click="handleGenerate"
     >
       <FileText :size="14" />
       Generate Summary
-    </button>
+    </SButton>
 
-    <div v-if="showPreview && summaryMarkdown" class="summary-preview">
+    <SCard v-if="showPreview && summaryMarkdown" variant="content">
       <div class="summary-header">
         <h3 class="summary-title">Review Summary Preview</h3>
         <div class="summary-actions">
-          <button class="btn-action" @click="handleCopy">
+          <SButton variant="ghost" size="sm" @click="handleCopy">
             <Copy :size="12" />
             Copy
-          </button>
-          <button
-            class="btn-action btn-post"
+          </SButton>
+          <SButton
+            variant="primary"
+            size="sm"
             :disabled="posting"
+            :loading="posting"
             @click="handlePost"
           >
             <Send :size="12" />
-            {{ posting ? 'Posting…' : 'Post to GitHub' }}
-          </button>
-          <button class="btn-close" @click="showPreview = false">&times;</button>
+            {{ posting ? 'Posting...' : 'Post to GitHub' }}
+          </SButton>
+          <SButton variant="ghost" size="sm" @click="showPreview = false">
+            <X :size="14" />
+          </SButton>
         </div>
       </div>
       <div class="summary-content">
         <MarkdownRenderer :content="summaryMarkdown" />
       </div>
-    </div>
+    </SCard>
   </div>
 </template>
 
 <style scoped>
 .review-summary-panel {
   margin-top: var(--space-3);
-}
-
-.btn-generate {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--color-status-info);
-  font-weight: 500;
-  font-size: 13px;
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-generate:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.4);
-}
-
-.summary-preview {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
 }
 
 .summary-header {
@@ -140,54 +119,6 @@ async function handlePost() {
   display: flex;
   gap: var(--space-2);
   align-items: center;
-}
-
-.btn-action {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-action:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-}
-
-.btn-post {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--color-status-success);
-  border-color: rgba(34, 197, 94, 0.3);
-}
-
-.btn-post:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.25);
-}
-
-.btn-post:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 var(--space-1);
-}
-
-.btn-close:hover {
-  color: var(--color-text-primary);
 }
 
 .summary-content {

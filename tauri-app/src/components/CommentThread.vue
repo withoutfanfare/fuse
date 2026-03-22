@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { SCard, SBadge, SEmptyState } from '@stuntrocket/ui'
 import type { PrComment, PrReviewComment } from '../types'
 
 const props = defineProps<{
@@ -68,13 +69,14 @@ function authorInitial(name: string): string {
   return name.charAt(0).toUpperCase()
 }
 
-function stateBadgeClass(state: string): string {
+/** Map review state to SBadge variant */
+function stateBadgeVariant(state: string): 'success' | 'error' | 'info' | 'default' {
   switch (state) {
-    case 'APPROVED': return 'badge-approved'
-    case 'CHANGES_REQUESTED': return 'badge-changes-requested'
-    case 'COMMENTED': return 'badge-commented'
-    case 'DISMISSED': return 'badge-dismissed'
-    default: return 'badge-commented'
+    case 'APPROVED': return 'success'
+    case 'CHANGES_REQUESTED': return 'error'
+    case 'COMMENTED': return 'info'
+    case 'DISMISSED': return 'default'
+    default: return 'info'
   }
 }
 
@@ -91,17 +93,21 @@ function stateLabel(state: string): string {
 
 <template>
   <div class="comment-thread">
-    <div v-if="timeline.length === 0" class="empty-state">
-      <p>No comments or reviews yet.</p>
-    </div>
+    <SEmptyState
+      v-if="timeline.length === 0"
+      title="No comments or reviews yet"
+    />
 
-    <div v-for="(entry, idx) in timeline" :key="idx" class="comment-card">
+    <SCard v-for="(entry, idx) in timeline" :key="idx" variant="content">
       <div class="comment-header">
         <div class="avatar-circle">{{ authorInitial(entry.author) }}</div>
         <span class="comment-author">{{ entry.author }}</span>
-        <span v-if="entry.kind === 'review' && entry.reviewState" class="review-badge" :class="stateBadgeClass(entry.reviewState)">
+        <SBadge
+          v-if="entry.kind === 'review' && entry.reviewState"
+          :variant="stateBadgeVariant(entry.reviewState)"
+        >
           {{ stateLabel(entry.reviewState) }}
-        </span>
+        </SBadge>
         <span class="comment-time">{{ relativeTime(entry.timestamp) }}</span>
       </div>
 
@@ -117,7 +123,7 @@ function stateLabel(state: string): string {
           <div class="comment-body inline-body">{{ ic.body }}</div>
         </div>
       </div>
-    </div>
+    </SCard>
   </div>
 </template>
 
@@ -126,21 +132,6 @@ function stateLabel(state: string): string {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-
-.empty-state {
-  text-align: centre;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: var(--space-6);
-}
-
-.comment-card {
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
 }
 
 .comment-header {
@@ -180,33 +171,6 @@ function stateLabel(state: string): string {
   font-size: 12px;
   color: var(--color-text-muted);
   margin-left: auto;
-}
-
-.review-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
-}
-
-.badge-approved {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--color-status-success);
-}
-
-.badge-changes-requested {
-  background: rgba(220, 38, 38, 0.2);
-  color: var(--color-status-danger);
-}
-
-.badge-commented {
-  background: rgba(96, 165, 250, 0.2);
-  color: var(--color-status-info);
-}
-
-.badge-dismissed {
-  background: rgba(100, 116, 139, 0.2);
-  color: var(--color-text-muted);
 }
 
 .comment-body {

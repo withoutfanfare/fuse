@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { SProgressBar } from '@stuntrocket/ui'
+import { SCard, SProgressBar } from '@stuntrocket/ui'
 
 const props = defineProps<{
   reviewed: number
@@ -31,7 +31,7 @@ const dashOffset = computed(() => {
 </script>
 
 <template>
-  <div class="review-progress">
+  <SCard variant="content" class="review-progress">
     <div class="donut-wrap">
       <svg :width="size" :height="size" class="donut-svg">
         <!-- Track -->
@@ -71,7 +71,7 @@ const dashOffset = computed(() => {
     <p class="progress-text">
       {{ reviewed }} of {{ total }} PR{{ total === 1 ? '' : 's' }} reviewed
     </p>
-  </div>
+  </SCard>
 </template>
 
 <style scoped>
@@ -80,11 +80,6 @@ const dashOffset = computed(() => {
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-3) var(--space-4);
 }
 
 .donut-wrap {
