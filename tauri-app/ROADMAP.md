@@ -179,6 +179,62 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
   - Stale session data cleaned up after 7 days or when the PR is closed/merged
   - Session restore graceful if PR data has changed since the save (new commits, updated files)
 
+### [Quality] Add merge conflict risk detection between concurrent open PRs targeting the same base branch
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-23
+- **Status:** pending
+- **Description:** When multiple PRs target the same base branch and modify overlapping files, merging one will likely cause conflicts in the others. Fuse already syncs PR metadata including changed file lists, but does not cross-reference them to detect overlap. The PR dependency awareness item (completed) shows explicit blocking relationships from PR descriptions, but implicit conflicts from file overlap are invisible. Detecting file-level overlap between concurrent open PRs and surfacing a "conflict risk" indicator on affected PR cards would help reviewers prioritise reviews strategically — merging the simpler PR first to minimise conflict resolution work for the more complex one.
+- **Acceptance criteria:**
+  - Changed file lists compared across all open PRs targeting the same base branch within each repository
+  - PRs with overlapping changed files flagged with a "Conflict risk" badge showing the count of overlapping files
+  - Badge click reveals the overlapping file list and the other PR(s) involved
+  - Conflict risk factored into the risk scoring algorithm as an additional signal
+  - Overlap detection runs during PR sync (no separate scan action required)
+  - Cross-repository overlap not analysed (scoped to within-repository PRs only)
+
+### [Performance] Add lazy diff content loading rendering file-level diffs on demand for PRs with many changed files
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-23
+- **Status:** pending
+- **Description:** The diff view fetches and renders the complete diff for all changed files when a PR detail panel is opened. For large PRs (20+ files, common in refactoring or migration PRs), this produces a long loading delay before the reviewer can start reading any file. The syntax highlighting feature (completed) adds additional per-file rendering cost. Loading only the file list with change stats initially — and fetching the actual diff content per file when the reviewer expands or scrolls to it — would make the PR detail panel interactive immediately and reduce wasted bandwidth for files the reviewer skips.
+- **Acceptance criteria:**
+  - PR detail diff view loads file list with stats (filename, lines added/removed, change type) immediately
+  - File-level diff content fetched on demand when the file section is expanded
+  - Syntax highlighting (completed) applied lazily alongside diff content loading
+  - Previously expanded file diffs cached for the session (no re-fetch on collapse/expand)
+  - Large PR detail panels (20+ files) render the file list within 500ms (vs current full-diff load time)
+  - No change to diff content quality, syntax highlighting, or annotation display
+
+### [Quality] Add PR review coverage tracking showing reviewed vs unreviewed files per review session
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-23
+- **Status:** pending
+- **Description:** During a review session, reviewers navigate through changed files, checking the diff view and marking checklist items complete. However, there is no aggregate indicator showing which files have been actively viewed vs merely listed — a reviewer can complete a checklist and submit a review summary (completed) without having actually opened every changed file's diff. Tracking file-level review coverage (which files' diffs were expanded and viewed for at least 5 seconds) and surfacing a coverage metric on the review session would help conscientious reviewers ensure thorough coverage, and help team leads assess review quality. This complements the review time tracking (completed) with a completeness dimension.
+- **Acceptance criteria:**
+  - Each file in the diff view tracked as "viewed" when its diff is expanded and visible for at least 5 seconds
+  - Review coverage metric displayed in the PR detail view: "X of Y files reviewed" with progress indicator
+  - Unreviewed files visually distinguishable in the file list (subtle indicator, not disruptive)
+  - Coverage data included in the review summary generation (completed feature) as a transparency metric
+  - Coverage data persisted in the review session state (auto-save item, completed)
+  - Coverage threshold configurable per repository (default: 100% — all files viewed)
+
+### [UX/UI] Add reviewer workload distribution view showing review volume and turnaround time per team member
+- **Priority:** P3 (nice-to-have)
+- **Size:** M (1-3hrs)
+- **Added:** 2026-03-23
+- **Status:** pending
+- **Description:** The aggregate dashboard (completed) shows cross-repo PR metrics, and filter presets (completed) let reviewers focus on specific workflow states, but neither surfaces how review load is distributed across team members. In active codebases, review bottlenecks often stem from uneven distribution — one reviewer handling 80% of high-risk PRs while others have empty queues. A workload view showing review volume, average turnaround time, and active review count per team member (derived from PR reviewer assignments already synced from GitHub) would help team leads identify bottlenecks and balance review assignments, reducing overall queue latency.
+- **Acceptance criteria:**
+  - Workload view accessible from the aggregate dashboard navigation showing all PR reviewers across synced repositories
+  - Per-reviewer metrics: assigned review count, completed reviews (last 7/14/30 days), average turnaround time, currently active reviews
+  - Visual indicator highlighting overloaded reviewers (above configurable threshold, default: 5 active reviews)
+  - Reviewer data derived from existing PR metadata (reviewer assignments, status changes) — no additional GitHub API calls
+  - Click on a reviewer row filters the PR list to show only their assigned reviews
+  - Workload data refreshes on each PR sync cycle
+
 ## Design System Adoption
 
 These items implement the @stuntrocket/ui design system to achieve premium visual uniformity across all Tauri applications. Items are ordered by dependency — foundation must complete before migration, migration before polish.

@@ -1,5 +1,17 @@
 # Fuse Roadmap Log
 
+## Cycle: 2026-03-23 15:00
+- **Items added:** none
+- **Items archived:** none
+- **Observations:** Fuse has 5 functional pending items + 3 design system = 8 total — the leanest pending count alongside Grove. Three items completed in the 2026-03-22 cycle (stale review detection, PR dependency awareness, review session auto-save) demonstrate strong execution momentum — Fuse has shifted from the only app with zero completions to one of the most actively developed. The label-based filters (P2, S) and merge conflict risk detection (P2, S) form the strongest pair for the next session — labels align with existing GitHub workflow conventions, and conflict risk adds an implicit overlap dimension to the existing explicit dependency tracking. The lazy diff loading (P2, S) would deliver the most visible performance improvement for reviewers working with large PRs. The inline file-level comments (P3, L) remains the most transformative pending feature — it would close the review loop entirely, making Fuse a complete review environment rather than a triage-only tool. Innovation category remains unrepresented in pending items, which is acceptable given the existing completed innovation item (review time tracking).
+
+## Cycle: 2026-03-23 09:00
+- **Items added:**
+  - [Quality] Add merge conflict risk detection between concurrent open PRs targeting the same base branch (P2, S)
+  - [Performance] Add lazy diff content loading rendering file-level diffs on demand for PRs with many changed files (P2, S)
+- **Items archived:** none
+- **Observations:** Added two items filling the Quality and Performance category gaps — Fuse had the fewest functional pending items (3) in the portfolio and lacked both categories entirely. Conflict risk detection complements the PR dependency awareness (completed) by adding an implicit overlap dimension alongside explicit dependency parsing. Lazy diff loading addresses the most common performance complaint for large PRs. Three items completed since last cycle (stale review detection, PR dependency awareness, review session auto-save) — strong execution momentum. Fuse now has 5 functional pending items + 3 design system = 8 total. The label-based filters (P2, S) and conflict risk detection (P2, S) pair would deliver the highest triage improvement — labels for workflow-aligned filtering, conflict risk for strategic review ordering.
+
 ## Cycle: 2026-03-23 03:00
 - **Items added:** none
 - **Items archived:** none
@@ -158,3 +170,14 @@
 - **Items added:** none
 - **Items archived:** none
 - **Observations:** Fuse remains at 15 pending items (12 functional + 3 design system) — at the rebalancing threshold. Still the only app in the portfolio with zero completed items. The roadmap is comprehensive and well-balanced across all categories. No additions warranted. The PR notification system (P2, M) and incremental sync (P2, M) remain the pair that would transform Fuse from a pull-based to push-based tool. For quicker wins, the diff syntax highlighting (P2, M) and filter presets (P2, S) pair delivers immediate code review quality improvement. Fuse needs execution, not more planning.
+
+## Cycle: 2026-03-23 01:30
+
+**Items added:**
+- [Quality] Add PR review coverage tracking showing reviewed vs unreviewed files per review session (P2, S)
+
+**Items archived:**
+- None
+
+**Observations:**
+Fuse's recent completions (stale review detection, PR dependency awareness, review session auto-save) have significantly strengthened the review workflow. The Quality category gap — no metric for actual file-level review thoroughness — is the most impactful remaining improvement. Review coverage tracking completes the review quality model: time tracking measures effort, coverage tracking measures thoroughness, and the review summary communicates both. No rebalancing needed (6 pending functional items + 3 design system items).
