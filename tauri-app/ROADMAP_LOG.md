@@ -1,5 +1,57 @@
 # Fuse Roadmap Log
 
+## Cycle: 2026-03-25 06:00
+- **Items added:**
+  - [Quality] Add repository sync health monitoring with proactive error alerting for stale data prevention (P2, S)
+- **Items archived:** none
+- **Observations:** Fuse at 15 pending (12 functional + 3 design system) after this addition. Added one Quality item addressing the most dangerous silent failure mode — stale PR data from failed syncs leading to incorrect review prioritisation decisions. The existing offline mode handles complete network loss but not partial/intermittent sync failures. The unified priority queue (P2, S) and CI check status (P2, S) remain the highest-value pending features for review workflow improvement. Lazy diff loading (P2, S) is the top performance priority.
+
+## Cycle: 2026-03-24 05:00
+- **Items added:** none
+- **Items archived:**
+  - [Feature] Add custom risk scoring weight configuration (P3, S) — niche configuration feature premature before the base risk scoring proves its value with broader usage
+- **Observations:** Fuse reduced from 15 to 14 pending (11 functional + 3 design system) after archiving risk scoring weights. The unified priority queue (P2, S) already addresses the tuning need at the composite level. Split-view diff (P2, S) and commit-level navigation (P2, S) remain the strongest development pair for improving the core review experience. CI status display (P2, S) is the highest-impact quick win — it prevents the most common review anti-pattern (reviewing a PR with failing CI). No stale items.
+
+## Cycle: 2026-03-24 23:30
+- **Items added:** none
+- **Items archived:** none
+- **Observations:** Fuse at 15 pending (12 functional + 3 design system) — at the rebalancing threshold. The unified priority queue (P2, S) is the single most impactful pending item — it synthesises all existing signals (risk, staleness, blocking, labels) into an actionable "review next" answer. Split-view diff (P2, S) and commit-level navigation (P2, S) would significantly improve the review experience. Fuse has the strongest completed feature set in the portfolio (10 items). No stale items.
+
+## Cycle: 2026-03-25 01:00
+- **Items added:** none
+- **Items archived:** none
+- **Observations:** Fuse at 15 pending (12 functional + 3 design system) — at the rebalancing threshold. No additions warranted. The unified priority queue (P2, S) and split-view diff mode (P2, S) remain the strongest development pair — one improving triage efficiency, the other improving review comprehension. The inline file-level review comments (P3, L) is the most transformative pending item, closing the review loop entirely. The Design System Foundation (P1, M) is the blocking prerequisite for visual unification. No stale items.
+
+## Cycle: 2026-03-24 23:00
+- **Items added:**
+  - [Feature] Add commit-level diff navigation within PR review for isolating changes by commit (P2, S)
+- **Items archived:** none
+- **Observations:** Fuse has 12 pending functional items + 3 design system = 15 total — at the rebalancing threshold. Added one Feature item addressing a core review limitation: aggregate diffs obscure the narrative of incremental commits, making it harder to review large PRs logically. Commit-level navigation lets reviewers follow the author's intent. The unified priority queue (P2, S) and lazy diff loading (P2, S) remain the strongest development pair. No stale items. Next cycle should consider archiving before adding.
+
+## Cycle: 2026-03-24 21:00
+- **Items added:**
+  - [Innovation] Add PR description quality analysis flagging PRs with insufficient context before review begins (P3, S)
+- **Items archived:** none
+- **Observations:** Fuse had 10 pending functional items + 3 design system = 13 total. Added one Innovation item filling a category gap — the existing risk scoring evaluates code changes but ignores description quality, which is the primary source of review context. Now at 14 total pending. The unified priority queue (P2, S) and lazy diff loading (P2, S) form the strongest development pair — the queue brings together all priority signals while lazy loading ensures the diff viewer remains fast for large PRs. The inline GitHub comments (P3, L) remains the most transformative feature for closing the review loop. No stale items.
+
+## Cycle: 2026-03-24 18:00
+- **Items added:**
+  - [UX/UI] Add split-view diff mode with toggle between unified and side-by-side layouts for different review contexts (P2, S)
+  - [Feature] Add custom risk scoring weight configuration allowing reviewers to tune how file types and change patterns affect the risk score (P3, S)
+- **Items archived:** none
+- **Observations:** Fuse now has 11 pending functional items + 3 design system = 14 total. Added two items filling distinct gaps. The split-view diff (P2, S) addresses the most fundamental review UX limitation — unified diffs are fine for small changes but side-by-side is essential for reviewing large refactors. Risk scoring weights (P3, S) extend the existing risk model from a fixed algorithm to a tuneable one, letting reviewers emphasise what matters for their specific codebase. The PR notification system (P2, M) remains the highest-impact pending feature for transforming Fuse from a polling tool into a proactive one.
+
+## Cycle: 2026-03-24 15:00
+- **Items added:** none
+- **Items archived:** none
+- **Observations:** Fuse has 9 pending functional items + 3 design system = 12 total — healthy and stable. No additions warranted — the roadmap covers all practical PR review workflow needs. The label-based filters (P2, S) and merge conflict risk detection (P2, S) remain the strongest pair for the next session. The unified priority queue (P2, S) added in the previous cycle is the natural evolution of Fuse's triage workflow, synthesising all existing priority signals. The inline file-level comments (P3, L) remains the most transformative pending feature for closing the review loop.
+
+## Cycle: 2026-03-24 09:00
+- **Items added:**
+  - [Feature] Add unified PR review queue prioritisation combining risk score, staleness, blocking status, and label signals into a single ranked view (P2, S)
+- **Items archived:** none
+- **Observations:** Fuse has 12 pending items (9 functional + 3 design system). Added one Feature item addressing a triage workflow gap — Fuse currently presents PRs in a flat list sorted by a single dimension, but real review prioritisation weighs multiple signals simultaneously. A unified ranked view would combine the existing risk scoring (completed), the pending label-based filters, and staleness into a single actionable ordering. This complements rather than duplicates individual signal features. The label-based filters (P2, S) and merge conflict risk detection (P2, S) remain the strongest pair for the next session. The inline file-level comments (P3, L) remains the most transformative pending feature.
+
 ## Cycle: 2026-03-23 15:00
 - **Items added:** none
 - **Items archived:** none
@@ -181,3 +233,8 @@
 
 **Observations:**
 Fuse's recent completions (stale review detection, PR dependency awareness, review session auto-save) have significantly strengthened the review workflow. The Quality category gap — no metric for actual file-level review thoroughness — is the most impactful remaining improvement. Review coverage tracking completes the review quality model: time tracking measures effort, coverage tracking measures thoroughness, and the review summary communicates both. No rebalancing needed (6 pending functional items + 3 design system items).
+
+## Cycle: 2026-03-24 09:00
+- **Items added:** [Feature] GitHub Actions CI check status display on PR cards — essential review gating signal missing from the current PR metadata
+- **Items archived:** [Innovation] PR description quality analysis — lower priority than core diff viewer improvements; subjective quality scoring risks false positives
+- **Observations:** Fuse's pending roadmap has strong coverage of review workflow features (lazy diff, split view, commit navigation) but was missing the most fundamental review gating signal — CI status. The CI check display fills this gap and integrates naturally with the existing sync pipeline and the planned unified priority queue. The inline file-level comments item (P3, L) remains the biggest pending feature — closing the review loop by letting reviewers post feedback to GitHub without leaving the app. The lazy diff loading (P2) should be prioritised next as it directly improves the daily review experience for large PRs.

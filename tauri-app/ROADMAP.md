@@ -235,6 +235,94 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
   - Click on a reviewer row filters the PR list to show only their assigned reviews
   - Workload data refreshes on each PR sync cycle
 
+### [Feature] Add unified PR review queue prioritisation combining risk score, staleness, blocking status, and label signals into a single ranked view
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Status:** pending
+- **Description:** Fuse surfaces multiple independent priority signals — risk scoring, stale review detection (completed), PR dependency awareness (completed), and label-based categorisation (pending) — but each signal exists in isolation. Reviewers must mentally synthesise these signals to decide which PR to review next. A unified priority score combining all signals with configurable weights (risk: 40%, staleness: 25%, blocking-others: 25%, label priority: 10%) into a single ranked "Review next" queue would eliminate this cognitive overhead. The aggregate dashboard (completed) shows cross-repo metrics; this item adds an opinionated ordering that answers the question "what should I review right now?" — the most common question for active reviewers.
+- **Acceptance criteria:**
+  - "Priority queue" view accessible from the main navigation showing all open PRs ranked by composite priority score
+  - Composite score combines: risk score (existing), time-since-review-requested, count of PRs blocked by this one, label priority (configurable per label)
+  - Score weights configurable in settings (with sensible defaults)
+  - Top PR highlighted as "Review next" with a brief explanation of why it ranks highest
+  - Queue respects existing filters (repository, author) while maintaining priority ordering
+  - Score breakdown visible on hover for each PR (which signals contributed most)
+
+### [UX/UI] Add split-view diff mode with toggle between unified and side-by-side layouts for different review contexts
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Status:** pending
+- **Description:** The diff viewer (with syntax highlighting, completed) renders diffs in a single layout mode, but different review scenarios benefit from different presentations. Small, focused changes are easiest to read in unified mode (interleaved additions and removals), while refactors and file restructurings are clearer in side-by-side mode where the old and new versions are directly adjacent. Every major code review tool (GitHub, GitLab, Bitbucket, VS Code) offers this toggle because no single layout is optimal for all change types. Adding a unified/side-by-side toggle to the diff viewer — persisted per session — would let reviewers choose the optimal layout for each file, improving comprehension for the large PRs that Fuse's risk scoring is specifically designed to surface.
+- **Acceptance criteria:**
+  - Toggle button in the diff viewer header switching between unified and side-by-side layouts
+  - Unified mode: current layout (interleaved additions/removals in a single column)
+  - Side-by-side mode: old content on the left, new content on the right, with aligned line numbers
+  - Syntax highlighting (completed feature) works correctly in both modes
+  - Layout preference persisted for the session (reset on app restart)
+  - Keyboard shortcut (u for unified, s for side-by-side) when diff viewer is focused
+  - Side-by-side mode gracefully handles wide lines (horizontal scroll per pane, not wrapping)
+
+### [Feature] Add commit-level diff navigation within PR review for isolating changes by commit
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Status:** pending
+- **Description:** The diff viewer (with syntax highlighting, completed) shows the aggregate diff across all commits in a PR. For large PRs with multiple commits — especially well-structured ones where each commit represents a logical step — reviewers cannot easily distinguish which commit introduced a specific change. This forces reviewers to treat the PR as a monolithic change, losing the author's intentional narrative. The lazy diff loading item (pending) optimises aggregate diff performance, and the split-view mode item (pending) improves diff readability, but neither addresses the commit-level navigation gap. Adding a commit picker that filters the diff to show only changes from a selected commit (or commit range) would let reviewers follow the author's progression, provide commit-specific feedback, and more quickly identify which commit introduced an issue — matching the commit-level review capability available in GitHub's web UI and tools like Reviewable.
+- **Acceptance criteria:**
+  - Commit list displayed in the PR detail view showing all commits with message, author, and date
+  - Selecting a commit filters the diff view to show only that commit's changes
+  - "All changes" option returns to the aggregate diff (current behaviour)
+  - Commit range selection: Shift-click two commits to show the diff between them
+  - Commit data fetched from the existing PR sync data (no additional GitHub API calls if commits are already synced)
+  - Review coverage tracking (pending item) records coverage per commit when commit-level navigation is used
+  - Syntax highlighting (completed) works correctly in commit-filtered diffs
+
+### [Quality] Add repository sync health monitoring with proactive error alerting for stale data prevention
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Status:** pending
+- **Description:** Fuse's PR data freshness depends on successful periodic syncs via the `gh` CLI — but when `gh` authentication expires, GitHub API rate limits are reached, or network issues prevent fetching, the sync fails silently and the app continues displaying stale data. The offline mode (completed) handles complete network loss with a "Last synced" banner, and the incremental sync (completed) optimises fetch efficiency, but neither detects or alerts on partial sync failures — where the app appears online but syncs are consistently failing. A sync health monitor that tracks consecutive sync failures, last successful sync time per repository, and surfaces a persistent warning when data staleness exceeds a configurable threshold would prevent operators from making triage decisions based on outdated PR information, which is the most dangerous failure mode for a review prioritisation tool.
+- **Acceptance criteria:**
+  - Per-repository sync health tracked: last successful sync timestamp, consecutive failure count, last error message
+  - Warning banner displayed when any repository's last successful sync exceeds a configurable threshold (default: 30 minutes)
+  - Banner shows: repository name, time since last successful sync, and last error summary
+  - Sync health status visible on repository cards in the aggregate dashboard
+  - Consecutive failure count triggers a native macOS notification after 3 failures (configurable)
+  - Sync health data included in the settings view for debugging
+
+### [Feature] Add GitHub Actions CI check status display on PR cards showing build pass/fail/pending alongside the existing risk score
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Status:** pending
+- **Description:** Fuse surfaces risk scores, staleness, dependency relationships, and label metadata on PR cards, but the most fundamental "should I review this now?" signal is missing — whether CI checks are passing. Reviewing a PR with failing CI is usually wasted effort, as the author will likely push fixes that invalidate the review. The `gh pr view` command already returns check status data that the existing sync pipeline could capture. Displaying a CI status badge (passing/failing/pending) on PR cards alongside the risk score would prevent the most common review workflow anti-pattern and complement the unified priority queue (pending) by adding a gating signal that outranks all other priority factors.
+- **Acceptance criteria:**
+  - CI check status (passing, failing, pending, no checks) displayed as a badge on PR cards in list and aggregate views
+  - Status data sourced from `gh pr view --json statusCheckRollup` during the existing PR sync cycle (no additional API calls)
+  - Failing CI visually prominent: red badge with "CI failing" text, optionally dimming the PR card
+  - CI status filterable in the filter bar: show only PRs with passing CI (most useful for reviewers), failing CI, or pending
+  - CI status factored into the unified priority queue (pending) as a gating signal: PRs with failing CI deprioritised regardless of other scores
+  - Check details expandable on the PR detail view showing individual check names and their statuses
+
+## Archived
+
+### [Feature] Add custom risk scoring weight configuration allowing reviewers to tune how file types and change patterns affect the risk score
+- **Priority:** P3 (nice-to-have)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Archived:** 2026-03-24
+- **Reason:** Niche configuration feature that should follow after the base risk scoring proves its value with broader usage. The unified priority queue (pending) already makes the composite priority score configurable, addressing the primary tuning need. Per-file-type weight configuration adds complexity with uncertain user demand. Revisit after the unified priority queue ships and users report that the fixed risk weights misrepresent their codebase's actual risk profile.
+
+### [Innovation] Add PR description quality analysis flagging PRs with insufficient context before review begins
+- **Priority:** P3 (nice-to-have)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Archived:** 2026-03-24
+- **Reason:** Interesting quality signal but lower priority than core review workflow improvements (lazy diff loading, split-view mode, commit-level navigation — all pending P2). Description quality is subjective and risks false positives that annoy users. The unified priority queue (pending) already provides opinionated ordering. Revisit after the diff viewer improvements are complete and users request more guidance on review prioritisation.
+
 ## Design System Adoption
 
 These items implement the @stuntrocket/ui design system to achieve premium visual uniformity across all Tauri applications. Items are ordered by dependency — foundation must complete before migration, migration before polish.
@@ -243,7 +331,8 @@ These items implement the @stuntrocket/ui design system to achieve premium visua
 - **Priority:** P1 (critical)
 - **Size:** M (1-3hrs)
 - **Added:** 2026-03-19
-- **Status:** pending
+- **Status:** completed
+- **Completed:** 2026-03-25
 
 ### [UI Migration] Replace bespoke components with @stuntrocket/ui shared components
 - **Priority:** P1 (critical)

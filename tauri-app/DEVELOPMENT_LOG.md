@@ -1,5 +1,15 @@
 # Fuse Development Log
 
+## Cycle: 2026-03-25 14:00
+- App: Fuse
+- Items completed:
+  - [Foundation] Integrate @stuntrocket/ui shared component library and design tokens (P1/M) — completed the dark mode migration from data-theme attribute to class-based .dark on html, aligning Fuse with the @stuntrocket/ui convention used across the portfolio. The @stuntrocket/ui package (v0.9.1) was already installed with .npmrc configured and style.css imported in base.css; Poppins font was already loaded via Google Fonts; several @stuntrocket/ui components (SAmbientBlobs, STopbar, SCommandPalette, SButton, SCard, SBadge, etc.) were already in use throughout the app. This cycle completed the remaining work: tokens.css light mode selector changed from [data-theme="light"] to html:not(.dark), useTheme composable switched from setAttribute('data-theme') to classList.toggle('dark'), and index.html inline script updated to remove .dark class for light mode instead of setting data-theme attribute.
+- Items attempted but failed: none
+- Branch: feature/scooda-design-tokens
+- Tests passing: yes (vue-tsc clean, cargo check clean, cargo clippy clean excluding 4 pre-existing warnings)
+- Build status: pending
+- Notes: The Foundation integration was substantially complete from prior work — @stuntrocket/ui v0.9.1 installed, CSS imported, Poppins loaded, and many shared components already in use. The only remaining gap was the dark mode mechanism: Fuse used data-theme attributes while @stuntrocket/ui expects .dark class on html. This cycle closed that gap with a minimal, focused change across 3 files. The teal accent override (#14b8a6) and all Fuse-specific tokens (risk colours, pipeline track, density mode, focus mode, high contrast mode) are preserved as app-specific additions layered on top of the shared token system.
+
 ## 2026-03-22 — Stale Review Detection, Dependency Badges, and Session Auto-Save
 
 ### Summary
