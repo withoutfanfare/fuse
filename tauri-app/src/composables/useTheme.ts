@@ -33,7 +33,7 @@ const ACCENT_KEY = 'fuse-accent-colour'
 
 /**
  * Composable managing theme mode (dark / light / system) and
- * accent colour. Applies `data-theme` attribute on `<html>`
+ * accent colour. Toggles the `.dark` class on `<html>`
  * and accent CSS custom properties on `documentElement.style`.
  *
  * Persists choices via the settings store with a localStorage
@@ -61,7 +61,7 @@ export function useTheme() {
 
   function applyTheme() {
     const effective = resolvedTheme()
-    document.documentElement.setAttribute('data-theme', effective)
+    document.documentElement.classList.toggle('dark', effective === 'dark')
   }
 
   function setThemeMode(mode: ThemeMode) {

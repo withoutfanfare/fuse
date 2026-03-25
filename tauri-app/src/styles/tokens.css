@@ -154,11 +154,11 @@
 
 /* -------------------------------------------------------
    Light mode — inverted semantic surface tokens.
-   Applied via [data-theme="light"] on <html>.
+   Applied when .dark class is absent on <html>.
    Glassmorphic panels swap to white/grey with reduced
    saturation; shadows soften; text colours invert.
    ------------------------------------------------------- */
-[data-theme="light"] {
+html:not(.dark) {
   /* Semantic surfaces — light mode */
   --color-surface-base: var(--grey-100);
   --color-surface-raised: #ffffff;
