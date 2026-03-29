@@ -5,10 +5,14 @@ import { usePullRequestsStore } from '../stores/pullRequests'
 import { useRepositoriesStore } from '../stores/repositories'
 import { useDiff } from '../composables/useDiff'
 import { useReviewSession } from '../composables/useReviewSession'
+import { useReviewCoverage } from '../composables/useReviewCoverage'
+import { useCommitHistory } from '../composables/useCommitHistory'
+import { useCommitDiff } from '../composables/useCommitDiff'
 import type { PullRequest, DiffFile } from '../types'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Eye } from 'lucide-vue-next'
 import { SBreadcrumbs, SSelect, SProgressBar } from '@stuntrocket/ui'
 import ContentLoader from '../components/ContentLoader.vue'
+import CommitPicker from '../components/CommitPicker.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,6 +44,28 @@ const {
   saveNotes,
 } = useReviewSession(prId)
 
+// Coverage tracking — automatic 5-second file viewing detection
+const {
+  viewedCount: coverageViewedCount,
+  coveragePercent,
+  isViewed: isCoverageViewed,
+  startViewing,
+  setTotalFiles: setCoverageTotalFiles,
+  restoreViewed: restoreCoverageViewed,
+} = useReviewCoverage()
+
+// Commit-level diff navigation
+const { commits, fetchCommits } = useCommitHistory()
+const {
+  selectedCommit,
+  selectedRangeStart,
+  commitDiffFiles,
+  loading: commitDiffLoading,
+  isFiltered: isCommitFiltered,
+  selectCommit,
+  selectCommitRange,
+} = useCommitDiff()
+
 /** SSelect string bridge for pomodoro duration. */
 const pomodoroSelectValue = computed({
   get() { return String(pomodoroMinutes.value) },
@@ -64,22 +90,37 @@ const breadcrumbItems = computed(() => [
   { label: 'Review Session' },
 ])
 
+/** The source of diff files — commit-specific or aggregate. */
+const activeDiffSource = computed<DiffFile[]>(() =>
+  isCommitFiltered.value ? commitDiffFiles.value : diffFiles.value,
+)
+
 /** The currently selected file's diff data. */
 const activeDiffFile = computed<DiffFile | null>(() => {
   if (!selectedFile.value) return null
-  return diffFiles.value.find(f => f.path === selectedFile.value) ?? null
+  return activeDiffSource.value.find(f => f.path === selectedFile.value) ?? null
 })
 
 /** Build a flat list of file paths for the tree panel. */
-const filePaths = computed(() => diffFiles.value.map(f => f.path))
+const filePaths = computed(() => activeDiffSource.value.map(f => f.path))
 
 function selectFile(path: string) {
   selectedFile.value = path
+  startViewing(path) // Track coverage
   // Scroll the diff panel to top when switching files
   nextTick(() => {
     const el = document.querySelector('.session-diff-panel')
     if (el) el.scrollTop = 0
   })
+}
+
+// Commit picker handlers
+function handleCommitSelect(oid: string | null) {
+  selectCommit(prId, oid)
+}
+
+function handleCommitRange(startOid: string, endOid: string) {
+  selectCommitRange(prId, commits.value, startOid, endOid)
 }
 
 function handleNotesInput(event: Event) {
@@ -108,14 +149,23 @@ onMounted(async () => {
   loading.value = false
 
   if (pr.value) {
-    await fetchDiff(pr.value.id)
+    await Promise.all([
+      fetchDiff(pr.value.id),
+      fetchCommits(pr.value.id),
+    ])
     setTotalFiles(diffFiles.value.length)
+    setCoverageTotalFiles(diffFiles.value.length)
 
     // Auto-start a new session, or resume a paused one
     if (!session.value) {
       await startSession()
     } else if (session.value.status === 'paused') {
       await resumeSession()
+    }
+
+    // Restore coverage state from session's reviewed files
+    if (session.value?.files_reviewed.length) {
+      restoreCoverageViewed(session.value.files_reviewed)
     }
 
     // Pre-populate notes from existing session
@@ -125,7 +175,7 @@ onMounted(async () => {
 
     // Select first file by default
     if (diffFiles.value.length > 0) {
-      selectedFile.value = diffFiles.value[0].path
+      selectFile(diffFiles.value[0].path)
     }
   }
 })
@@ -133,6 +183,7 @@ onMounted(async () => {
 // Update total files when diff loads
 watch(() => diffFiles.value.length, (count) => {
   setTotalFiles(count)
+  setCoverageTotalFiles(count)
 })
 </script>
 
@@ -213,6 +264,13 @@ watch(() => diffFiles.value.length, (count) => {
           <span class="progress-label">{{ reviewProgress }}% reviewed</span>
         </div>
 
+        <!-- Coverage indicator -->
+        <div class="coverage-section" :title="`${coverageViewedCount} of ${filePaths.length} files viewed for 5+ seconds`">
+          <Eye :size="14" class="coverage-icon" />
+          <span class="coverage-label">{{ coverageViewedCount }}/{{ filePaths.length }}</span>
+          <span class="coverage-pct">({{ coveragePercent }}%)</span>
+        </div>
+
         <button class="btn-complete" @click="handleComplete">
           Complete Review
         </button>
@@ -222,7 +280,18 @@ watch(() => diffFiles.value.length, (count) => {
     <div class="session-panels">
       <!-- Left panel: file tree with checkboxes -->
       <div class="session-file-tree">
-        <div class="file-tree-header">Files</div>
+        <div class="file-tree-header">
+          <span>Files</span>
+          <CommitPicker
+            v-if="commits.length > 1"
+            :commits="commits"
+            :selected-oid="selectedCommit"
+            :range-start-oid="selectedRangeStart"
+            :loading="commitDiffLoading"
+            @select-commit="handleCommitSelect"
+            @select-range="handleCommitRange"
+          />
+        </div>
         <div v-if="diffLoading" class="file-tree-loading">Loading diff...</div>
         <div v-else class="file-tree-list">
           <div
@@ -232,6 +301,7 @@ watch(() => diffFiles.value.length, (count) => {
             :class="{
               'file-selected': selectedFile === path,
               'file-reviewed': isFileReviewed(path),
+              'file-not-viewed': !isCoverageViewed(path),
             }"
             @click="selectFile(path)"
           >
@@ -249,6 +319,11 @@ watch(() => diffFiles.value.length, (count) => {
                 {{ path.substring(0, path.lastIndexOf('/')) }}
               </span>
             </div>
+            <span
+              v-if="!isCoverageViewed(path)"
+              class="file-unviewed-dot"
+              title="Not yet viewed (5s threshold)"
+            />
           </div>
         </div>
       </div>
@@ -317,6 +392,12 @@ watch(() => diffFiles.value.length, (count) => {
             <span class="info-label">Files reviewed</span>
             <span class="info-value">
               {{ session?.files_reviewed.length ?? 0 }} / {{ filePaths.length }}
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Files viewed</span>
+            <span class="info-value">
+              {{ coverageViewedCount }} / {{ filePaths.length }}
             </span>
           </div>
         </div>
@@ -514,6 +595,30 @@ watch(() => diffFiles.value.length, (count) => {
   text-align: right;
 }
 
+/* Coverage indicator */
+.coverage-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.coverage-icon {
+  opacity: 0.6;
+}
+
+.coverage-label {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.coverage-pct {
+  color: var(--color-text-muted);
+}
+
 .btn-complete {
   background: rgba(34, 197, 94, 0.2);
   color: var(--color-status-success);
@@ -555,12 +660,16 @@ watch(() => diffFiles.value.length, (count) => {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--color-border-default);
   position: sticky;
   top: 0;
   background: var(--color-surface-panel);
-  z-index: 1;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
 .file-tree-loading {
@@ -659,6 +768,24 @@ watch(() => diffFiles.value.length, (count) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Unviewed file indicator — subtle dot */
+.file-unviewed-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-status-warning);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.file-tree-item.file-not-viewed {
+  /* Subtle left border for unviewed files */
+}
+
+.file-tree-item:not(.file-not-viewed) .file-unviewed-dot {
+  display: none;
 }
 
 /* Centre: diff viewer */

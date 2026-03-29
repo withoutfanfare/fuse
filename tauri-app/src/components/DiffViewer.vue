@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, computed } from 'vue'
-import { BookmarkPlus } from 'lucide-vue-next'
+import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
+import { BookmarkPlus, Columns2, AlignJustify } from 'lucide-vue-next'
 import { SIconButton, SEmptyState, useContextMenu } from '@stuntrocket/ui'
-import type { DiffFile, DiffLine } from '../types'
+import type { DiffFile, DiffLine, DiffHunk } from '../types'
 import DiffFileTree from './DiffFileTree.vue'
 import { useSyntaxHighlight } from '../composables/useSyntaxHighlight'
 
@@ -11,6 +11,94 @@ const props = defineProps<{
 }>()
 
 const { ensureLoaded, detectLanguage, highlightLine, loaded: hlLoaded } = useSyntaxHighlight()
+
+// --- Split-view mode ---
+
+type DiffViewMode = 'unified' | 'side-by-side'
+const viewMode = ref<DiffViewMode>(
+  (sessionStorage.getItem('fuse.diffViewMode') as DiffViewMode) || 'unified',
+)
+
+function setViewMode(mode: DiffViewMode) {
+  viewMode.value = mode
+  sessionStorage.setItem('fuse.diffViewMode', mode)
+}
+
+/** Keyboard shortcut handler for u (unified) and s (side-by-side). */
+function handleViewModeKey(event: KeyboardEvent) {
+  // Only respond when no input/textarea is focused
+  const tag = (event.target as HTMLElement)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  if (event.key === 'u' && !event.metaKey && !event.ctrlKey) {
+    setViewMode('unified')
+  } else if (event.key === 's' && !event.metaKey && !event.ctrlKey) {
+    setViewMode('side-by-side')
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleViewModeKey)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleViewModeKey)
+})
+
+/**
+ * A side-by-side line pair: left (old) and right (new).
+ * Either side may be null for pure additions or pure removals.
+ */
+interface SideBySidePair {
+  left: DiffLine | null
+  right: DiffLine | null
+}
+
+/**
+ * Transform a hunk's lines into paired left/right for side-by-side rendering.
+ * Pairs adjacent remove+add lines together; context lines appear on both sides.
+ */
+function hunkToSideBySide(hunk: DiffHunk): SideBySidePair[] {
+  const pairs: SideBySidePair[] = []
+  const lines = hunk.lines
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    if (line.type === 'context') {
+      pairs.push({ left: line, right: line })
+      i++
+    } else if (line.type === 'remove') {
+      // Collect consecutive removes
+      const removes: DiffLine[] = []
+      while (i < lines.length && lines[i].type === 'remove') {
+        removes.push(lines[i])
+        i++
+      }
+      // Collect consecutive adds that follow
+      const adds: DiffLine[] = []
+      while (i < lines.length && lines[i].type === 'add') {
+        adds.push(lines[i])
+        i++
+      }
+      // Pair them up
+      const maxLen = Math.max(removes.length, adds.length)
+      for (let j = 0; j < maxLen; j++) {
+        pairs.push({
+          left: j < removes.length ? removes[j] : null,
+          right: j < adds.length ? adds[j] : null,
+        })
+      }
+    } else if (line.type === 'add') {
+      pairs.push({ left: null, right: line })
+      i++
+    } else {
+      i++
+    }
+  }
+
+  return pairs
+}
 
 // Lazily load highlight.js when component mounts
 onMounted(() => {
@@ -128,6 +216,28 @@ defineExpose({ scrollToLine, scrollToFile })
     </div>
 
     <div class="diff-content">
+      <!-- View mode toggle -->
+      <div class="diff-toolbar">
+        <div class="view-mode-toggle">
+          <SIconButton
+            size="sm"
+            :title="`Unified view (u)`"
+            :class="{ 'mode-active': viewMode === 'unified' }"
+            @click="setViewMode('unified')"
+          >
+            <AlignJustify :size="14" />
+          </SIconButton>
+          <SIconButton
+            size="sm"
+            :title="`Side-by-side view (s)`"
+            :class="{ 'mode-active': viewMode === 'side-by-side' }"
+            @click="setViewMode('side-by-side')"
+          >
+            <Columns2 :size="14" />
+          </SIconButton>
+        </div>
+      </div>
+
       <SEmptyState
         v-if="files.length === 0"
         title="No changes"
@@ -155,24 +265,60 @@ defineExpose({ scrollToLine, scrollToFile })
           </SIconButton>
         </div>
 
-        <div v-for="(hunk, hunkIdx) in file.hunks" :key="hunkIdx" class="diff-hunk">
-          <div class="diff-hunk-header">{{ hunk.header }}</div>
-          <div class="diff-lines">
-            <div
-              v-for="(line, lineIdx) in hunk.lines"
-              :key="lineIdx"
-              class="diff-line"
-              :class="`diff-line-${line.type}`"
-              :data-line="getLineDataAttr(line)"
-              @contextmenu="handleLineContextMenu($event, file.path, line)"
-            >
-              <span class="line-number line-number-old">{{ line.oldLineNumber ?? '' }}</span>
-              <span class="line-number line-number-new">{{ line.newLineNumber ?? '' }}</span>
-              <span class="line-prefix">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>
-              <span class="line-content" v-html="getHighlightedContent(file.path, line.content)" />
+        <!-- Unified view (default) -->
+        <template v-if="viewMode === 'unified'">
+          <div v-for="(hunk, hunkIdx) in file.hunks" :key="hunkIdx" class="diff-hunk">
+            <div class="diff-hunk-header">{{ hunk.header }}</div>
+            <div class="diff-lines">
+              <div
+                v-for="(line, lineIdx) in hunk.lines"
+                :key="lineIdx"
+                class="diff-line"
+                :class="`diff-line-${line.type}`"
+                :data-line="getLineDataAttr(line)"
+                @contextmenu="handleLineContextMenu($event, file.path, line)"
+              >
+                <span class="line-number line-number-old">{{ line.oldLineNumber ?? '' }}</span>
+                <span class="line-number line-number-new">{{ line.newLineNumber ?? '' }}</span>
+                <span class="line-prefix">{{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ' }}</span>
+                <span class="line-content" v-html="getHighlightedContent(file.path, line.content)" />
+              </div>
             </div>
           </div>
-        </div>
+        </template>
+
+        <!-- Side-by-side view -->
+        <template v-else>
+          <div v-for="(hunk, hunkIdx) in file.hunks" :key="hunkIdx" class="diff-hunk">
+            <div class="diff-hunk-header">{{ hunk.header }}</div>
+            <div class="sbs-lines">
+              <div
+                v-for="(pair, pairIdx) in hunkToSideBySide(hunk)"
+                :key="pairIdx"
+                class="sbs-row"
+              >
+                <div class="sbs-left" :class="pair.left ? `sbs-line-${pair.left.type}` : 'sbs-line-empty'">
+                  <span class="line-number">{{ pair.left?.oldLineNumber ?? '' }}</span>
+                  <span class="line-prefix">{{ pair.left ? (pair.left.type === 'remove' ? '-' : ' ') : '' }}</span>
+                  <span
+                    v-if="pair.left"
+                    class="line-content"
+                    v-html="getHighlightedContent(file.path, pair.left.content)"
+                  />
+                </div>
+                <div class="sbs-right" :class="pair.right ? `sbs-line-${pair.right.type}` : 'sbs-line-empty'">
+                  <span class="line-number">{{ pair.right?.newLineNumber ?? '' }}</span>
+                  <span class="line-prefix">{{ pair.right ? (pair.right.type === 'add' ? '+' : ' ') : '' }}</span>
+                  <span
+                    v-if="pair.right"
+                    class="line-content"
+                    v-html="getHighlightedContent(file.path, pair.right.content)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -205,6 +351,35 @@ defineExpose({ scrollToLine, scrollToFile })
   overflow: hidden;
   background: var(--color-surface-panel);
   max-height: 80vh;
+}
+
+/* View mode toolbar */
+.diff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.view-mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface-base);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.view-mode-toggle :deep(button) {
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+
+.view-mode-toggle :deep(button.mode-active) {
+  opacity: 1;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
 }
 
 .diff-sidebar {
@@ -375,6 +550,81 @@ defineExpose({ scrollToLine, scrollToFile })
 .line-content {
   padding-right: var(--space-4);
   overflow-x: visible;
+}
+
+/* Side-by-side layout */
+.sbs-lines {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: var(--diff-line-height, 1.6);
+  font-variant-ligatures: var(--code-ligatures, common-ligatures contextual);
+}
+
+.sbs-row {
+  display: flex;
+  min-height: 20px;
+}
+
+.sbs-left,
+.sbs-right {
+  flex: 1;
+  display: flex;
+  white-space: pre;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.sbs-left {
+  border-right: 1px solid var(--color-border-default);
+}
+
+.sbs-line-remove {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.sbs-line-add {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.sbs-line-context {
+  background: transparent;
+}
+
+.sbs-line-empty {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sbs-left .line-number,
+.sbs-right .line-number {
+  display: inline-block;
+  width: 40px;
+  min-width: 40px;
+  text-align: right;
+  padding-right: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  user-select: none;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.sbs-left .line-prefix,
+.sbs-right .line-prefix {
+  display: inline-block;
+  width: 16px;
+  min-width: 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.sbs-line-remove .line-prefix {
+  color: var(--color-status-danger);
+}
+
+.sbs-line-add .line-prefix {
+  color: var(--color-status-success);
 }
 </style>
 

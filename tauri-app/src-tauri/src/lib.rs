@@ -102,6 +102,8 @@ pub fn run() {
             commands::checks::fetch_pr_checks,
             commands::comments::fetch_pr_comments,
             commands::diff::fetch_pr_diff,
+            commands::diff::fetch_commit_diff,
+            commands::diff::fetch_commit_range_diff,
             commands::stale::get_stale_prs,
             commands::stale::close_pull_request,
             commands::batch::batch_approve,
