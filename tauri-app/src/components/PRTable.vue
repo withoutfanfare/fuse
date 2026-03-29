@@ -215,6 +215,16 @@ function isForbiddenTarget(pr: PullRequest): boolean {
   return base === 'main' || base === 'master'
 }
 
+function labelPillStyle(pr: PullRequest, label: string): Record<string, string> {
+  const hex = pr.label_colours?.[label]
+  if (!hex) return {}
+  return {
+    background: `#${hex}22`,
+    color: `#${hex}`,
+    borderColor: `#${hex}44`,
+  }
+}
+
 /* --- Hover preview (Improvement 4) --- */
 const { hoveredId, previewPosition, isVisible: hoverVisible, onRowEnter, onRowMove, onRowLeave } = useHoverPreview(400)
 
@@ -444,8 +454,18 @@ function onTableMouseOut(event: MouseEvent) {
           <RiskGauge :score="pr._riskScore" :size="28" />
         </td>
         <td class="col-pr">
-          <span class="pr-number">#{{ pr.number }}</span>
-          <span class="pr-title-text">{{ pr.title }}</span>
+          <div class="pr-title-row">
+            <span class="pr-number">#{{ pr.number }}</span>
+            <span class="pr-title-text">{{ pr.title }}</span>
+          </div>
+          <div v-if="pr.labels.length > 0" class="label-pills">
+            <span
+              v-for="label in pr.labels"
+              :key="label"
+              class="label-pill"
+              :style="labelPillStyle(pr, label)"
+            >{{ label }}</span>
+          </div>
         </td>
         <td class="col-author">
           <AuthorAvatar :username="pr.author" />
@@ -473,6 +493,12 @@ function onTableMouseOut(event: MouseEvent) {
             class="conflict-badge-inline"
             title="This PR has merge conflicts"
           >Conflicts</span>
+          <span
+            v-if="pr.ci_status"
+            class="ci-badge"
+            :class="`ci-${pr.ci_status}`"
+            :title="`CI: ${pr.ci_status}`"
+          >{{ pr.ci_status === 'passing' ? 'CI ✓' : pr.ci_status === 'failing' ? 'CI ✗' : 'CI …' }}</span>
         </td>
         <td class="col-review">
           <span
@@ -805,5 +831,58 @@ function onTableMouseOut(event: MouseEvent) {
 .empty-cell {
   padding: 0 !important;
   border: none !important;
+}
+
+/* Label pills */
+.pr-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.label-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.label-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* CI status badge */
+.ci-badge {
+  display: inline-block;
+  margin-left: var(--space-1);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.ci-passing {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--color-status-success);
+}
+
+.ci-failing {
+  background: rgba(220, 38, 38, 0.2);
+  color: var(--color-status-danger);
+}
+
+.ci-pending {
+  background: rgba(234, 179, 8, 0.2);
+  color: var(--color-status-warning);
 }
 </style>

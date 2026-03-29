@@ -14,6 +14,9 @@ import FilterPresetsBar from '../components/FilterPresetsBar.vue'
 import OfflineBanner from '../components/OfflineBanner.vue'
 import { SSearchInput, SSelect } from '@stuntrocket/ui'
 import { useOfflineMode } from '../composables/useOfflineMode'
+import { useLabelFilter } from '../composables/useLabelFilter'
+import { useSyncHealth } from '../composables/useSyncHealth'
+import SyncHealthBanner from '../components/SyncHealthBanner.vue'
 
 const router = useRouter()
 const prStore = usePullRequestsStore()
@@ -22,6 +25,9 @@ const filters = useFiltersStore()
 const groupsStore = useGroupsStore()
 const filterGroupId = ref<number | null>(null)
 const { isOnline, timeSinceSync } = useOfflineMode()
+const { labels: allLabels, selectedLabels, hasSelection: hasLabelSelection, fetchLabels, toggleLabel, clearSelection: clearLabelSelection } = useLabelFilter()
+const filterCiStatus = ref<string>('')
+const { unhealthyRepos, hasIssues: hasSyncIssues, fetchHealth } = useSyncHealth()
 
 /**
  * SSelect works with string modelValue, so bridge between
@@ -45,10 +51,13 @@ onMounted(async () => {
   if (repoStore.repos.length === 0) await repoStore.fetchAll()
   await groupsStore.fetchAll()
   await prStore.fetchAll(filters.filterRepoId ?? undefined, undefined)
+  await fetchLabels(filters.filterRepoId ?? undefined)
+  await fetchHealth()
 })
 
 watch(() => filters.filterRepoId, async () => {
   await prStore.fetchAll(filters.filterRepoId ?? undefined, undefined)
+  await fetchLabels(filters.filterRepoId ?? undefined)
 })
 
 /** Client-side state + search + group filtering for instant, reliable results */
@@ -75,6 +84,18 @@ const filteredPrs = computed(() => {
     })
   }
 
+  // Label filter — PR must carry ALL selected labels
+  if (selectedLabels.value.size > 0) {
+    result = result.filter(pr =>
+      [...selectedLabels.value].every(l => pr.labels.includes(l))
+    )
+  }
+
+  // CI status filter
+  if (filterCiStatus.value) {
+    result = result.filter(pr => pr.ci_status === filterCiStatus.value)
+  }
+
   // Search filter
   const q = filters.searchQuery.toLowerCase().trim()
   if (q) {
@@ -93,7 +114,7 @@ const filteredPrs = computed(() => {
 })
 
 const hasFilters = computed(() => {
-  return filters.filterRepoId !== null || filters.filterState !== 'ALL' || filters.searchQuery.trim() !== '' || filterGroupId.value !== null
+  return filters.filterRepoId !== null || filters.filterState !== 'ALL' || filters.searchQuery.trim() !== '' || filterGroupId.value !== null || hasLabelSelection.value || filterCiStatus.value !== ''
 })
 
 function openDetail(id: number) {
@@ -169,6 +190,10 @@ onUnmounted(() => {
       :syncing="prStore.syncing"
       @retry="prStore.syncAll()"
     />
+    <SyncHealthBanner
+      v-if="hasSyncIssues"
+      :unhealthy-repos="unhealthyRepos"
+    />
     <FilterPresetsBar class="presets-row" />
     <div class="filters-bar">
       <div class="filter-group">
@@ -191,6 +216,41 @@ onUnmounted(() => {
             @click="filters.filterState = state"
           >
             {{ state.charAt(0) + state.slice(1).toLowerCase() }}
+          </button>
+        </div>
+      </div>
+      <div v-if="allLabels.length > 0" class="filter-group">
+        <label class="filter-label">Labels</label>
+        <div class="label-filter-chips">
+          <button
+            v-for="lbl in allLabels.slice(0, 12)"
+            :key="lbl.name"
+            class="label-chip"
+            :class="{ active: selectedLabels.has(lbl.name) }"
+            :style="lbl.color ? { '--chip-color': `#${lbl.color}` } : {}"
+            @click="toggleLabel(lbl.name)"
+          >
+            {{ lbl.name }}
+            <span class="label-count">{{ lbl.count }}</span>
+          </button>
+          <button
+            v-if="hasLabelSelection"
+            class="label-chip label-chip-clear"
+            @click="clearLabelSelection"
+          >Clear</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">CI</label>
+        <div class="filter-buttons">
+          <button
+            v-for="ci in ['', 'passing', 'failing', 'pending']"
+            :key="ci"
+            class="filter-btn"
+            :class="{ active: filterCiStatus === ci }"
+            @click="filterCiStatus = ci"
+          >
+            {{ ci === '' ? 'All' : ci.charAt(0).toUpperCase() + ci.slice(1) }}
           </button>
         </div>
       </div>
@@ -343,5 +403,47 @@ onUnmounted(() => {
 .search-clear:hover {
   color: var(--color-text-primary);
   background: var(--color-surface-hover);
+}
+
+/* Label filter chips */
+.label-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.label-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.label-chip:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-hover);
+}
+
+.label-chip.active {
+  background: color-mix(in srgb, var(--chip-color, var(--color-accent)) 15%, transparent);
+  color: var(--chip-color, var(--color-accent));
+  border-color: color-mix(in srgb, var(--chip-color, var(--color-accent)) 40%, transparent);
+}
+
+.label-chip-clear {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.label-count {
+  margin-left: 3px;
+  opacity: 0.6;
+  font-size: 10px;
 }
 </style>

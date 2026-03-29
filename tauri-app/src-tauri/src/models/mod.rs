@@ -26,6 +26,9 @@ pub struct PullRequest {
     pub is_draft: bool,
     pub url: String,
     pub labels: Vec<String>,
+    /// Map of label name → hex colour (e.g. {"bug": "d73a4a"}).
+    #[serde(default)]
+    pub label_colours: std::collections::HashMap<String, String>,
     pub mergeable: Option<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -33,6 +36,8 @@ pub struct PullRequest {
     pub closed_at: Option<String>,
     pub body: Option<String>,
     pub last_synced_at: String,
+    /// Rollup CI check status: "passing", "failing", "pending", or null if no checks.
+    pub ci_status: Option<String>,
     /// Joined from pr_reviews (optional)
     pub review_status: Option<String>,
     /// Joined from pr_reviews (optional)
@@ -155,6 +160,24 @@ pub struct GhPrJson {
     /// Requested reviewers for this PR (GitHub `reviewRequests` field).
     #[serde(rename = "reviewRequests", default)]
     pub review_requests: Vec<GhReviewRequest>,
+    /// CI check status rollup from GitHub.
+    #[serde(rename = "statusCheckRollup", default)]
+    pub status_check_rollup: Vec<GhStatusCheck>,
+}
+
+/// A single CI check entry from the `statusCheckRollup` field.
+#[derive(Debug, Clone, Deserialize)]
+pub struct GhStatusCheck {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub context: Option<String>,
+    #[serde(default)]
+    pub state: Option<String>,
+    #[serde(default)]
+    pub conclusion: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// A single review request entry from the `gh` CLI `reviewRequests` field.
@@ -225,6 +248,27 @@ pub struct GhAuthor {
 #[derive(Debug, Deserialize)]
 pub struct GhLabel {
     pub name: String,
+    #[serde(default)]
+    pub color: Option<String>,
+}
+
+/// Summary of a label across all PRs, with occurrence count and colour.
+#[derive(Debug, Clone, Serialize)]
+pub struct LabelSummary {
+    pub name: String,
+    pub color: Option<String>,
+    pub count: i64,
+}
+
+/// Per-repository sync health derived from the sync_log table.
+#[derive(Debug, Clone, Serialize)]
+pub struct SyncHealthStatus {
+    pub repo_id: i64,
+    pub repo_name: String,
+    pub last_successful_sync: Option<String>,
+    pub consecutive_failures: i64,
+    pub last_error: Option<String>,
+    pub minutes_since_success: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

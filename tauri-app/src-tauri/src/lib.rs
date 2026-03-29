@@ -168,6 +168,8 @@ pub fn run() {
             commands::filter_presets::rename_filter_preset,
             commands::aggregate::get_aggregate_dashboard,
             commands::review_summary::post_review_summary,
+            commands::labels::get_all_labels,
+            commands::sync_health::get_sync_health,
             start_polling,
             stop_polling,
             update_poll_interval,

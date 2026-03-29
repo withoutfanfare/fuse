@@ -6,7 +6,7 @@ use tauri::State;
 
 use crate::db::DbState;
 use crate::github;
-use crate::models::{PrChangeEvent, SyncResult};
+use crate::models::{GhPrJson, GhStatusCheck, PrChangeEvent, SyncResult};
 
 use super::CommandError;
 
@@ -214,6 +214,8 @@ fn fetch_and_upsert_prs_delta(
             let labels_json =
                 serde_json::to_string(&pr.labels.iter().map(|l| &l.name).collect::<Vec<_>>())
                     .unwrap_or_else(|_| "[]".to_string());
+            let label_colours_json = build_label_colours_json(pr);
+            let ci_status = compute_ci_status(&pr.status_check_rollup);
             let is_draft_int: i64 = if pr.is_draft { 1 } else { 0 };
             let state_upper = pr.state.to_uppercase();
 
@@ -221,13 +223,15 @@ fn fetch_and_upsert_prs_delta(
                 r#"INSERT INTO pull_requests (
                     repo_id, number, title, author, state,
                     head_branch, base_branch, additions, deletions, changed_files,
-                    review_decision, is_draft, url, labels, mergeable,
-                    created_at, updated_at, merged_at, closed_at, body, last_synced_at
+                    review_decision, is_draft, url, labels, label_colours,
+                    mergeable, created_at, updated_at, merged_at, closed_at,
+                    body, ci_status, last_synced_at
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5,
                     ?6, ?7, ?8, ?9, ?10,
                     ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17, ?18, ?19, ?20, datetime('now')
+                    ?16, ?17, ?18, ?19, ?20,
+                    ?21, ?22, datetime('now')
                 )
                 ON CONFLICT(repo_id, number) DO UPDATE SET
                     title = excluded.title,
@@ -242,11 +246,13 @@ fn fetch_and_upsert_prs_delta(
                     is_draft = excluded.is_draft,
                     url = excluded.url,
                     labels = excluded.labels,
+                    label_colours = excluded.label_colours,
                     mergeable = excluded.mergeable,
                     updated_at = excluded.updated_at,
                     merged_at = excluded.merged_at,
                     closed_at = excluded.closed_at,
                     body = excluded.body,
+                    ci_status = excluded.ci_status,
                     last_synced_at = datetime('now')"#,
                 rusqlite::params![
                     repo_id,
@@ -263,12 +269,14 @@ fn fetch_and_upsert_prs_delta(
                     is_draft_int,
                     pr.url,
                     labels_json,
+                    label_colours_json,
                     pr.mergeable,
                     pr.created_at,
                     pr.updated_at,
                     pr.merged_at,
                     pr.closed_at,
                     pr.body,
+                    ci_status,
                 ],
             )?;
 
@@ -327,6 +335,60 @@ struct PrSnapshot {
     number: i64,
     state: String,
     updated_at: String,
+}
+
+/// Build a JSON map of label name → hex colour from the gh CLI labels.
+fn build_label_colours_json(pr: &GhPrJson) -> String {
+    let map: HashMap<String, String> = pr
+        .labels
+        .iter()
+        .filter_map(|l| l.color.as_ref().map(|c| (l.name.clone(), c.clone())))
+        .collect();
+    serde_json::to_string(&map).unwrap_or_else(|_| "{}".to_string())
+}
+
+/// Compute a rollup CI status from the statusCheckRollup array.
+/// Returns "passing", "failing", "pending", or None if no checks.
+fn compute_ci_status(checks: &[GhStatusCheck]) -> Option<String> {
+    if checks.is_empty() {
+        return None;
+    }
+
+    let mut has_failure = false;
+    let mut has_pending = false;
+
+    for check in checks {
+        // GitHub uses either `conclusion` (for completed checks) or `state`/`status`
+        let conclusion = check.conclusion.as_deref().unwrap_or("");
+        let state = check.state.as_deref().unwrap_or("");
+        let status = check.status.as_deref().unwrap_or("");
+
+        if conclusion == "FAILURE"
+            || conclusion == "failure"
+            || state == "FAILURE"
+            || state == "ERROR"
+        {
+            has_failure = true;
+        } else if conclusion.is_empty()
+            && (state == "PENDING"
+                || state == "pending"
+                || status == "IN_PROGRESS"
+                || status == "QUEUED"
+                || status == "WAITING"
+                || status == "in_progress"
+                || status == "queued")
+        {
+            has_pending = true;
+        }
+    }
+
+    if has_failure {
+        Some("failing".to_string())
+    } else if has_pending {
+        Some("pending".to_string())
+    } else {
+        Some("passing".to_string())
+    }
 }
 
 /// Fetch PRs from GitHub via the gh CLI and upsert them into the database.
@@ -431,6 +493,8 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
             let labels_json =
                 serde_json::to_string(&pr.labels.iter().map(|l| &l.name).collect::<Vec<_>>())
                     .unwrap_or_else(|_| "[]".to_string());
+            let label_colours_json = build_label_colours_json(pr);
+            let ci_status = compute_ci_status(&pr.status_check_rollup);
             let is_draft_int: i64 = if pr.is_draft { 1 } else { 0 };
             // Normalise state to uppercase so stats queries work consistently
             let state_upper = pr.state.to_uppercase();
@@ -439,13 +503,15 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                 r#"INSERT INTO pull_requests (
                     repo_id, number, title, author, state,
                     head_branch, base_branch, additions, deletions, changed_files,
-                    review_decision, is_draft, url, labels, mergeable,
-                    created_at, updated_at, merged_at, closed_at, body, last_synced_at
+                    review_decision, is_draft, url, labels, label_colours,
+                    mergeable, created_at, updated_at, merged_at, closed_at,
+                    body, ci_status, last_synced_at
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5,
                     ?6, ?7, ?8, ?9, ?10,
                     ?11, ?12, ?13, ?14, ?15,
-                    ?16, ?17, ?18, ?19, ?20, datetime('now')
+                    ?16, ?17, ?18, ?19, ?20,
+                    ?21, ?22, datetime('now')
                 )
                 ON CONFLICT(repo_id, number) DO UPDATE SET
                     title = excluded.title,
@@ -460,11 +526,13 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     is_draft = excluded.is_draft,
                     url = excluded.url,
                     labels = excluded.labels,
+                    label_colours = excluded.label_colours,
                     mergeable = excluded.mergeable,
                     updated_at = excluded.updated_at,
                     merged_at = excluded.merged_at,
                     closed_at = excluded.closed_at,
                     body = excluded.body,
+                    ci_status = excluded.ci_status,
                     last_synced_at = datetime('now')"#,
                 rusqlite::params![
                     repo_id,
@@ -481,12 +549,14 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     is_draft_int,
                     pr.url,
                     labels_json,
+                    label_colours_json,
                     pr.mergeable,
                     pr.created_at,
                     pr.updated_at,
                     pr.merged_at,
                     pr.closed_at,
                     pr.body,
+                    ci_status,
                 ],
             )?;
 

@@ -357,6 +357,30 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         "#,
     )?;
 
+    // Add label_colours column to pull_requests for label colour display.
+    match conn.execute_batch(
+        "ALTER TABLE pull_requests ADD COLUMN label_colours TEXT NOT NULL DEFAULT '{}'",
+    ) {
+        Ok(()) => {}
+        Err(e) => {
+            let msg = e.to_string();
+            if !msg.contains("duplicate column") {
+                return Err(e);
+            }
+        }
+    }
+
+    // Add ci_status column to pull_requests for CI check rollup display.
+    match conn.execute_batch("ALTER TABLE pull_requests ADD COLUMN ci_status TEXT") {
+        Ok(()) => {}
+        Err(e) => {
+            let msg = e.to_string();
+            if !msg.contains("duplicate column") {
+                return Err(e);
+            }
+        }
+    }
+
     // Insert built-in filter presets
     conn.execute_batch(
         r#"

@@ -14,6 +14,9 @@ const FORBIDDEN_TARGETS: &[&str] = &["main", "master"];
 pub fn parse_pr_row(row: &rusqlite::Row) -> Result<PullRequest, rusqlite::Error> {
     let labels_json: String = row.get(13)?;
     let labels: Vec<String> = serde_json::from_str(&labels_json).unwrap_or_default();
+    let label_colours_json: String = row.get(14)?;
+    let label_colours: std::collections::HashMap<String, String> =
+        serde_json::from_str(&label_colours_json).unwrap_or_default();
     let is_draft_int: i64 = row.get(12)?;
 
     Ok(PullRequest {
@@ -30,17 +33,19 @@ pub fn parse_pr_row(row: &rusqlite::Row) -> Result<PullRequest, rusqlite::Error>
         changed_files: row.get(10)?,
         review_decision: row.get(11)?,
         is_draft: is_draft_int != 0,
-        url: row.get(14)?,
+        url: row.get(15)?,
         labels,
-        mergeable: row.get(15)?,
-        created_at: row.get(16)?,
-        updated_at: row.get(17)?,
-        merged_at: row.get(18)?,
-        closed_at: row.get(19)?,
+        label_colours,
+        mergeable: row.get(16)?,
+        created_at: row.get(17)?,
+        updated_at: row.get(18)?,
+        merged_at: row.get(19)?,
+        closed_at: row.get(20)?,
         body: None,
-        last_synced_at: row.get(20)?,
-        review_status: row.get(21)?,
-        review_notes: row.get(22)?,
+        last_synced_at: row.get(21)?,
+        ci_status: row.get(22)?,
+        review_status: row.get(23)?,
+        review_notes: row.get(24)?,
     })
 }
 
@@ -51,9 +56,9 @@ pub const PR_SELECT: &str = r#"
     p.id, p.repo_id, p.number, p.title, p.author,
     p.state, p.head_branch, p.base_branch,
     p.additions, p.deletions, p.changed_files,
-    p.review_decision, p.is_draft, p.labels, p.url,
-    p.mergeable, p.created_at, p.updated_at,
-    p.merged_at, p.closed_at, p.last_synced_at,
+    p.review_decision, p.is_draft, p.labels, p.label_colours,
+    p.url, p.mergeable, p.created_at, p.updated_at,
+    p.merged_at, p.closed_at, p.last_synced_at, p.ci_status,
     r.status, r.review_notes
 "#;
 
@@ -62,9 +67,9 @@ const PR_SELECT_WITH_BODY: &str = r#"
     p.id, p.repo_id, p.number, p.title, p.author,
     p.state, p.head_branch, p.base_branch,
     p.additions, p.deletions, p.changed_files,
-    p.review_decision, p.is_draft, p.labels, p.url,
-    p.mergeable, p.created_at, p.updated_at,
-    p.merged_at, p.closed_at, p.body, p.last_synced_at,
+    p.review_decision, p.is_draft, p.labels, p.label_colours,
+    p.url, p.mergeable, p.created_at, p.updated_at,
+    p.merged_at, p.closed_at, p.body, p.last_synced_at, p.ci_status,
     r.status, r.review_notes
 "#;
 
@@ -72,6 +77,9 @@ const PR_SELECT_WITH_BODY: &str = r#"
 fn parse_pr_row_with_body(row: &rusqlite::Row) -> Result<PullRequest, rusqlite::Error> {
     let labels_json: String = row.get(13)?;
     let labels: Vec<String> = serde_json::from_str(&labels_json).unwrap_or_default();
+    let label_colours_json: String = row.get(14)?;
+    let label_colours: std::collections::HashMap<String, String> =
+        serde_json::from_str(&label_colours_json).unwrap_or_default();
     let is_draft_int: i64 = row.get(12)?;
 
     Ok(PullRequest {
@@ -88,17 +96,19 @@ fn parse_pr_row_with_body(row: &rusqlite::Row) -> Result<PullRequest, rusqlite::
         changed_files: row.get(10)?,
         review_decision: row.get(11)?,
         is_draft: is_draft_int != 0,
-        url: row.get(14)?,
+        url: row.get(15)?,
         labels,
-        mergeable: row.get(15)?,
-        created_at: row.get(16)?,
-        updated_at: row.get(17)?,
-        merged_at: row.get(18)?,
-        closed_at: row.get(19)?,
-        body: row.get(20)?,
-        last_synced_at: row.get(21)?,
-        review_status: row.get(22)?,
-        review_notes: row.get(23)?,
+        label_colours,
+        mergeable: row.get(16)?,
+        created_at: row.get(17)?,
+        updated_at: row.get(18)?,
+        merged_at: row.get(19)?,
+        closed_at: row.get(20)?,
+        body: row.get(21)?,
+        last_synced_at: row.get(22)?,
+        ci_status: row.get(23)?,
+        review_status: row.get(24)?,
+        review_notes: row.get(25)?,
     })
 }
 

@@ -5,7 +5,7 @@ use crate::models::{
 };
 
 /// Fields to request from the GitHub CLI when listing pull requests.
-const GH_PR_FIELDS: &str = "number,title,author,state,headRefName,baseRefName,additions,deletions,changedFiles,reviewDecision,isDraft,url,labels,mergeable,createdAt,updatedAt,mergedAt,closedAt,body,reviewRequests";
+const GH_PR_FIELDS: &str = "number,title,author,state,headRefName,baseRefName,additions,deletions,changedFiles,reviewDecision,isDraft,url,labels,mergeable,createdAt,updatedAt,mergedAt,closedAt,body,reviewRequests,statusCheckRollup";
 
 fn format_merge_error(stderr: &str) -> String {
     if stderr.contains("Pull Request is still a draft") {

@@ -22,6 +22,7 @@ export interface PullRequest {
   is_draft: boolean
   url: string
   labels: string[]
+  label_colours: Record<string, string>
   mergeable: string | null
   created_at: string
   updated_at: string
@@ -29,6 +30,7 @@ export interface PullRequest {
   closed_at: string | null
   body: string | null
   last_synced_at: string
+  ci_status: string | null
   review_status: string | null
   review_notes: string | null
 }
@@ -481,4 +483,23 @@ export interface TopRiskPr {
   additions: number
   deletions: number
   created_at: string
+}
+
+// --- Label Summaries ---
+
+export interface LabelSummary {
+  name: string
+  color: string | null
+  count: number
+}
+
+// --- Sync Health ---
+
+export interface SyncHealthStatus {
+  repo_id: number
+  repo_name: string
+  last_successful_sync: string | null
+  consecutive_failures: number
+  last_error: string | null
+  minutes_since_success: number | null
 }
