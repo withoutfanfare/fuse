@@ -94,6 +94,33 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
 - **Description:** Generate formatted review summary (checklist status, annotation excerpts, risk assessment, files reviewed, time spent) as GitHub-flavoured Markdown. Copy to clipboard or post directly to the PR as a comment via gh CLI.
 - **Implementation:** `useReviewSummary` composable, `commands/review_summary.rs` for gh CLI posting, `ReviewSummaryPanel.vue` component integrated into PR detail overview tab.
 
+### [Quality] Add merge conflict risk detection between concurrent open PRs targeting the same base branch
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-23
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** When multiple PRs target the same base branch and modify overlapping files, merging one will likely cause conflicts in the others. File-level overlap detection between concurrent open PRs, surfacing a "conflict risk" indicator on affected PR cards.
+- **Implementation:** `changed_file_paths TEXT` column on `pull_requests` populated during sync from `gh pr list --json files`. `detect_conflict_risks` Rust command comparing file paths across open PRs grouped by (repo_id, base_branch), returning reciprocal `ConflictRiskEntry` pairs sorted by overlap count. `useConflictRisk` composable with `risksForPr()` and `pairCount` computed. `ConflictRiskBadge.vue` component using `SBadge` with warning variant. Conflict overlap factored into priority queue scoring.
+
+### [Feature] Add unified PR review queue prioritisation combining risk score, staleness, blocking status, and label signals into a single ranked view
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-24
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** Unified priority score combining risk, staleness, blocking status, label signals, and conflict risk into a single ranked review queue.
+- **Implementation:** Enhanced `get_priority_queue` command with `PriorityContext` struct pre-computing per-PR dependency graph (blocks/blocked counts), file overlap from `changed_file_paths`, and priority label matching against `PRIORITY_LABELS` set (urgent, critical, hotfix, priority, p0, p1, high-priority, blocker, security). New factors: blocking bonus (+1.5 per blocked PR, max 3), blocked penalty (-2), priority label boost (+1), conflict risk factor (overlap_count/3, max 3). Weights: `blocking_weight: 1.5`, `label_weight: 0.5`, `conflict_risk_weight: 1.0`.
+
+### [Performance] Add lazy diff content loading rendering file-level diffs on demand for PRs with many changed files
+- **Priority:** P2 (important)
+- **Size:** S (< 1hr)
+- **Added:** 2026-03-23
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** Lazy diff loading: file list with stats rendered immediately, full diff content fetched on demand when a file is expanded, with session-level caching.
+- **Implementation:** `get_pr_file_list` Rust command fetching file metadata via `gh pr view --json files` for instant file tree rendering. `useLazyDiff` composable with `fetchFileList(prId)` for fast metadata, `expandFile(prId, path)` fetching full diff on first expansion and caching all parsed files in a Map, `toggleFile`, `collapseFile`, `getDiffFile`, `isExpanded`, `reset`, plus computed `fileCount`, `totalAdditions`, `totalDeletions`.
+
 ## Pending
 
 ### [Distribution] Add Tauri auto-updater integration
@@ -174,34 +201,6 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
   - Stale session data cleaned up after 7 days or when the PR is closed/merged
   - Session restore graceful if PR data has changed since the save (new commits, updated files)
 
-### [Quality] Add merge conflict risk detection between concurrent open PRs targeting the same base branch
-- **Priority:** P2 (important)
-- **Size:** S (< 1hr)
-- **Added:** 2026-03-23
-- **Status:** pending
-- **Description:** When multiple PRs target the same base branch and modify overlapping files, merging one will likely cause conflicts in the others. Fuse already syncs PR metadata including changed file lists, but does not cross-reference them to detect overlap. The PR dependency awareness item (completed) shows explicit blocking relationships from PR descriptions, but implicit conflicts from file overlap are invisible. Detecting file-level overlap between concurrent open PRs and surfacing a "conflict risk" indicator on affected PR cards would help reviewers prioritise reviews strategically — merging the simpler PR first to minimise conflict resolution work for the more complex one.
-- **Acceptance criteria:**
-  - Changed file lists compared across all open PRs targeting the same base branch within each repository
-  - PRs with overlapping changed files flagged with a "Conflict risk" badge showing the count of overlapping files
-  - Badge click reveals the overlapping file list and the other PR(s) involved
-  - Conflict risk factored into the risk scoring algorithm as an additional signal
-  - Overlap detection runs during PR sync (no separate scan action required)
-  - Cross-repository overlap not analysed (scoped to within-repository PRs only)
-
-### [Performance] Add lazy diff content loading rendering file-level diffs on demand for PRs with many changed files
-- **Priority:** P2 (important)
-- **Size:** S (< 1hr)
-- **Added:** 2026-03-23
-- **Status:** pending
-- **Description:** The diff view fetches and renders the complete diff for all changed files when a PR detail panel is opened. For large PRs (20+ files, common in refactoring or migration PRs), this produces a long loading delay before the reviewer can start reading any file. The syntax highlighting feature (completed) adds additional per-file rendering cost. Loading only the file list with change stats initially — and fetching the actual diff content per file when the reviewer expands or scrolls to it — would make the PR detail panel interactive immediately and reduce wasted bandwidth for files the reviewer skips.
-- **Acceptance criteria:**
-  - PR detail diff view loads file list with stats (filename, lines added/removed, change type) immediately
-  - File-level diff content fetched on demand when the file section is expanded
-  - Syntax highlighting (completed) applied lazily alongside diff content loading
-  - Previously expanded file diffs cached for the session (no re-fetch on collapse/expand)
-  - Large PR detail panels (20+ files) render the file list within 500ms (vs current full-diff load time)
-  - No change to diff content quality, syntax highlighting, or annotation display
-
 ### [Quality] Add PR review coverage tracking showing reviewed vs unreviewed files per review session
 - **Priority:** P2 (important)
 - **Size:** S (< 1hr)
@@ -229,20 +228,6 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
   - Reviewer data derived from existing PR metadata (reviewer assignments, status changes) — no additional GitHub API calls
   - Click on a reviewer row filters the PR list to show only their assigned reviews
   - Workload data refreshes on each PR sync cycle
-
-### [Feature] Add unified PR review queue prioritisation combining risk score, staleness, blocking status, and label signals into a single ranked view
-- **Priority:** P2 (important)
-- **Size:** S (< 1hr)
-- **Added:** 2026-03-24
-- **Status:** pending
-- **Description:** Fuse surfaces multiple independent priority signals — risk scoring, stale review detection (completed), PR dependency awareness (completed), and label-based categorisation (pending) — but each signal exists in isolation. Reviewers must mentally synthesise these signals to decide which PR to review next. A unified priority score combining all signals with configurable weights (risk: 40%, staleness: 25%, blocking-others: 25%, label priority: 10%) into a single ranked "Review next" queue would eliminate this cognitive overhead. The aggregate dashboard (completed) shows cross-repo metrics; this item adds an opinionated ordering that answers the question "what should I review right now?" — the most common question for active reviewers.
-- **Acceptance criteria:**
-  - "Priority queue" view accessible from the main navigation showing all open PRs ranked by composite priority score
-  - Composite score combines: risk score (existing), time-since-review-requested, count of PRs blocked by this one, label priority (configurable per label)
-  - Score weights configurable in settings (with sensible defaults)
-  - Top PR highlighted as "Review next" with a brief explanation of why it ranks highest
-  - Queue respects existing filters (repository, author) while maintaining priority ordering
-  - Score breakdown visible on hover for each PR (which signals contributed most)
 
 ### [UX/UI] Add split-view diff mode with toggle between unified and side-by-side layouts for different review contexts
 - **Priority:** P2 (important)
