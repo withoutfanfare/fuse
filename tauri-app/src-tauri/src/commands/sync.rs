@@ -6,7 +6,7 @@ use tauri::State;
 
 use crate::db::DbState;
 use crate::github;
-use crate::models::{GhPrJson, GhStatusCheck, PrChangeEvent, SyncResult};
+use crate::models::{GhFileChange, GhPrJson, GhStatusCheck, PrChangeEvent, SyncResult};
 
 use super::CommandError;
 
@@ -216,6 +216,7 @@ fn fetch_and_upsert_prs_delta(
                     .unwrap_or_else(|_| "[]".to_string());
             let label_colours_json = build_label_colours_json(pr);
             let ci_status = compute_ci_status(&pr.status_check_rollup);
+            let file_paths_json = build_file_paths_json(&pr.files);
             let is_draft_int: i64 = if pr.is_draft { 1 } else { 0 };
             let state_upper = pr.state.to_uppercase();
 
@@ -225,13 +226,13 @@ fn fetch_and_upsert_prs_delta(
                     head_branch, base_branch, additions, deletions, changed_files,
                     review_decision, is_draft, url, labels, label_colours,
                     mergeable, created_at, updated_at, merged_at, closed_at,
-                    body, ci_status, last_synced_at
+                    body, ci_status, changed_file_paths, last_synced_at
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5,
                     ?6, ?7, ?8, ?9, ?10,
                     ?11, ?12, ?13, ?14, ?15,
                     ?16, ?17, ?18, ?19, ?20,
-                    ?21, ?22, datetime('now')
+                    ?21, ?22, ?23, datetime('now')
                 )
                 ON CONFLICT(repo_id, number) DO UPDATE SET
                     title = excluded.title,
@@ -253,6 +254,7 @@ fn fetch_and_upsert_prs_delta(
                     closed_at = excluded.closed_at,
                     body = excluded.body,
                     ci_status = excluded.ci_status,
+                    changed_file_paths = excluded.changed_file_paths,
                     last_synced_at = datetime('now')"#,
                 rusqlite::params![
                     repo_id,
@@ -277,6 +279,7 @@ fn fetch_and_upsert_prs_delta(
                     pr.closed_at,
                     pr.body,
                     ci_status,
+                    file_paths_json,
                 ],
             )?;
 
@@ -335,6 +338,12 @@ struct PrSnapshot {
     number: i64,
     state: String,
     updated_at: String,
+}
+
+/// Build a JSON array of file paths from the gh CLI files field.
+fn build_file_paths_json(files: &[GhFileChange]) -> String {
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+    serde_json::to_string(&paths).unwrap_or_else(|_| "[]".to_string())
 }
 
 /// Build a JSON map of label name → hex colour from the gh CLI labels.
@@ -495,6 +504,7 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     .unwrap_or_else(|_| "[]".to_string());
             let label_colours_json = build_label_colours_json(pr);
             let ci_status = compute_ci_status(&pr.status_check_rollup);
+            let file_paths_json = build_file_paths_json(&pr.files);
             let is_draft_int: i64 = if pr.is_draft { 1 } else { 0 };
             // Normalise state to uppercase so stats queries work consistently
             let state_upper = pr.state.to_uppercase();
@@ -505,13 +515,13 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     head_branch, base_branch, additions, deletions, changed_files,
                     review_decision, is_draft, url, labels, label_colours,
                     mergeable, created_at, updated_at, merged_at, closed_at,
-                    body, ci_status, last_synced_at
+                    body, ci_status, changed_file_paths, last_synced_at
                 ) VALUES (
                     ?1, ?2, ?3, ?4, ?5,
                     ?6, ?7, ?8, ?9, ?10,
                     ?11, ?12, ?13, ?14, ?15,
                     ?16, ?17, ?18, ?19, ?20,
-                    ?21, ?22, datetime('now')
+                    ?21, ?22, ?23, datetime('now')
                 )
                 ON CONFLICT(repo_id, number) DO UPDATE SET
                     title = excluded.title,
@@ -533,6 +543,7 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     closed_at = excluded.closed_at,
                     body = excluded.body,
                     ci_status = excluded.ci_status,
+                    changed_file_paths = excluded.changed_file_paths,
                     last_synced_at = datetime('now')"#,
                 rusqlite::params![
                     repo_id,
@@ -557,6 +568,7 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     pr.closed_at,
                     pr.body,
                     ci_status,
+                    file_paths_json,
                 ],
             )?;
 

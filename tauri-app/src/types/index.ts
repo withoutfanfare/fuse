@@ -226,6 +226,23 @@ export interface ConflictStatus {
   has_conflicts: boolean
 }
 
+export interface ConflictRiskEntry {
+  pr_id: number
+  pr_number: number
+  pr_title: string
+  other_pr_id: number
+  other_pr_number: number
+  other_pr_title: string
+  overlapping_files: string[]
+  overlap_count: number
+}
+
+export interface DiffFileSummary {
+  path: string
+  additions: number
+  deletions: number
+}
+
 export interface PriorityFactor {
   label: string
   points: number

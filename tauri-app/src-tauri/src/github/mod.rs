@@ -5,7 +5,7 @@ use crate::models::{
 };
 
 /// Fields to request from the GitHub CLI when listing pull requests.
-const GH_PR_FIELDS: &str = "number,title,author,state,headRefName,baseRefName,additions,deletions,changedFiles,reviewDecision,isDraft,url,labels,mergeable,createdAt,updatedAt,mergedAt,closedAt,body,reviewRequests,statusCheckRollup";
+const GH_PR_FIELDS: &str = "number,title,author,state,headRefName,baseRefName,additions,deletions,changedFiles,reviewDecision,isDraft,url,labels,mergeable,createdAt,updatedAt,mergedAt,closedAt,body,reviewRequests,statusCheckRollup,files";
 
 fn format_merge_error(stderr: &str) -> String {
     if stderr.contains("Pull Request is still a draft") {
@@ -641,6 +641,50 @@ pub async fn fetch_issue_async(
 
     let issue: GhIssueJson = serde_json::from_slice(&output.stdout)?;
     Ok(issue)
+}
+
+/// Async: Fetch the file list (path, additions, deletions) for a PR.
+pub async fn fetch_pr_file_list_async(
+    full_name: &str,
+    pr_number: i64,
+) -> Result<Vec<crate::models::DiffFileSummary>, CommandError> {
+    let output = tokio_command_for("gh", "GitHub CLI", CommandError::Gh)?
+        .args([
+            "pr",
+            "view",
+            &pr_number.to_string(),
+            "--repo",
+            full_name,
+            "--json",
+            "files",
+        ])
+        .output()
+        .await
+        .map_err(|e| CommandError::Gh(format!("Failed to run gh CLI: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(CommandError::Gh(format!(
+            "gh pr view files failed: {}",
+            stderr
+        )));
+    }
+
+    #[derive(serde::Deserialize)]
+    struct FilesResponse {
+        files: Vec<crate::models::GhFileChange>,
+    }
+
+    let resp: FilesResponse = serde_json::from_slice(&output.stdout)?;
+    Ok(resp
+        .files
+        .into_iter()
+        .map(|f| crate::models::DiffFileSummary {
+            path: f.path,
+            additions: f.additions,
+            deletions: f.deletions,
+        })
+        .collect())
 }
 
 /// Close a pull request on GitHub using the `gh` CLI.

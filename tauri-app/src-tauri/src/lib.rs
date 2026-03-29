@@ -170,6 +170,8 @@ pub fn run() {
             commands::review_summary::post_review_summary,
             commands::labels::get_all_labels,
             commands::sync_health::get_sync_health,
+            commands::conflict_risk::detect_conflict_risks,
+            commands::diff_files::get_pr_file_list,
             start_polling,
             stop_polling,
             update_poll_interval,
