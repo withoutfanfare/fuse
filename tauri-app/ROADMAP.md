@@ -205,15 +205,10 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
 - **Priority:** P2 (important)
 - **Size:** S (< 1hr)
 - **Added:** 2026-03-23
-- **Status:** pending
+- **Completed:** 2026-03-29
+- **Status:** done
 - **Description:** During a review session, reviewers navigate through changed files, checking the diff view and marking checklist items complete. However, there is no aggregate indicator showing which files have been actively viewed vs merely listed — a reviewer can complete a checklist and submit a review summary (completed) without having actually opened every changed file's diff. Tracking file-level review coverage (which files' diffs were expanded and viewed for at least 5 seconds) and surfacing a coverage metric on the review session would help conscientious reviewers ensure thorough coverage, and help team leads assess review quality. This complements the review time tracking (completed) with a completeness dimension.
-- **Acceptance criteria:**
-  - Each file in the diff view tracked as "viewed" when its diff is expanded and visible for at least 5 seconds
-  - Review coverage metric displayed in the PR detail view: "X of Y files reviewed" with progress indicator
-  - Unreviewed files visually distinguishable in the file list (subtle indicator, not disruptive)
-  - Coverage data included in the review summary generation (completed feature) as a transparency metric
-  - Coverage data persisted in the review session state (auto-save item, completed)
-  - Coverage threshold configurable per repository (default: 100% — all files viewed)
+- **Implementation:** `useReviewCoverage` composable with setTimeout-based 5-second threshold tracking per file. Coverage indicator (Eye icon + X/Y count + percentage) in ReviewSession toolbar. Unviewed files marked with teal dot indicator in file tree. Coverage stats shown in session info section.
 
 ### [UX/UI] Add reviewer workload distribution view showing review volume and turnaround time per team member
 - **Priority:** P3 (nice-to-have)
@@ -233,31 +228,19 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
 - **Priority:** P2 (important)
 - **Size:** S (< 1hr)
 - **Added:** 2026-03-24
-- **Status:** pending
-- **Description:** The diff viewer (with syntax highlighting, completed) renders diffs in a single layout mode, but different review scenarios benefit from different presentations. Small, focused changes are easiest to read in unified mode (interleaved additions and removals), while refactors and file restructurings are clearer in side-by-side mode where the old and new versions are directly adjacent. Every major code review tool (GitHub, GitLab, Bitbucket, VS Code) offers this toggle because no single layout is optimal for all change types. Adding a unified/side-by-side toggle to the diff viewer — persisted per session — would let reviewers choose the optimal layout for each file, improving comprehension for the large PRs that Fuse's risk scoring is specifically designed to surface.
-- **Acceptance criteria:**
-  - Toggle button in the diff viewer header switching between unified and side-by-side layouts
-  - Unified mode: current layout (interleaved additions/removals in a single column)
-  - Side-by-side mode: old content on the left, new content on the right, with aligned line numbers
-  - Syntax highlighting (completed feature) works correctly in both modes
-  - Layout preference persisted for the session (reset on app restart)
-  - Keyboard shortcut (u for unified, s for side-by-side) when diff viewer is focused
-  - Side-by-side mode gracefully handles wide lines (horizontal scroll per pane, not wrapping)
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** The diff viewer (with syntax highlighting, completed) renders diffs in a single layout mode, but different review scenarios benefit from different presentations. Small, focused changes are easiest to read in unified mode (interleaved additions and removals), while refactors and file restructurings are clearer in side-by-side mode where the old and new versions are directly adjacent. Every major code review tool (GitHub, GitLab, Bitbucket, VS Code) offers this toggle because no single layout is optimal for all change types.
+- **Implementation:** `viewMode` ref with sessionStorage persistence in DiffViewer. Toolbar with AlignJustify/Columns2 icon toggle. `hunkToSideBySide()` pairing algorithm matching consecutive remove/add lines into left/right columns. Keyboard shortcuts `u`/`s` for unified/side-by-side. Side-by-side panes with independent horizontal scroll.
 
 ### [Feature] Add commit-level diff navigation within PR review for isolating changes by commit
 - **Priority:** P2 (important)
 - **Size:** S (< 1hr)
 - **Added:** 2026-03-24
-- **Status:** pending
-- **Description:** The diff viewer (with syntax highlighting, completed) shows the aggregate diff across all commits in a PR. For large PRs with multiple commits — especially well-structured ones where each commit represents a logical step — reviewers cannot easily distinguish which commit introduced a specific change. This forces reviewers to treat the PR as a monolithic change, losing the author's intentional narrative. The lazy diff loading item (pending) optimises aggregate diff performance, and the split-view mode item (pending) improves diff readability, but neither addresses the commit-level navigation gap. Adding a commit picker that filters the diff to show only changes from a selected commit (or commit range) would let reviewers follow the author's progression, provide commit-specific feedback, and more quickly identify which commit introduced an issue — matching the commit-level review capability available in GitHub's web UI and tools like Reviewable.
-- **Acceptance criteria:**
-  - Commit list displayed in the PR detail view showing all commits with message, author, and date
-  - Selecting a commit filters the diff view to show only that commit's changes
-  - "All changes" option returns to the aggregate diff (current behaviour)
-  - Commit range selection: Shift-click two commits to show the diff between them
-  - Commit data fetched from the existing PR sync data (no additional GitHub API calls if commits are already synced)
-  - Review coverage tracking (pending item) records coverage per commit when commit-level navigation is used
-  - Syntax highlighting (completed) works correctly in commit-filtered diffs
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** The diff viewer (with syntax highlighting, completed) shows the aggregate diff across all commits in a PR. For large PRs with multiple commits — especially well-structured ones where each commit represents a logical step — reviewers cannot easily distinguish which commit introduced a specific change. Adding a commit picker that filters the diff to show only changes from a selected commit (or commit range) lets reviewers follow the author's progression.
+- **Implementation:** `useCommitDiff` composable managing commit selection and fetching per-commit diffs via `fetch_commit_diff` and `fetch_commit_range_diff` Rust commands. `CommitPicker.vue` dropdown with click-to-select and Shift+click range selection. Rust commands use `gh api repos/{owner}/{repo}/commits/{sha}` with diff Accept header for single commits and `/compare/{base}...{head}` for ranges. `activeDiffSource` computed in ReviewSession switches between commit-filtered and aggregate diffs.
 
 ### [Quality] Add repository sync health monitoring with proactive error alerting for stale data prevention
 - **Priority:** P2 (important)

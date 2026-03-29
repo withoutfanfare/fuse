@@ -687,6 +687,68 @@ pub async fn fetch_pr_file_list_async(
         .collect())
 }
 
+/// Async: Fetch the unified diff for a single commit using the GitHub API.
+///
+/// Uses `gh api repos/{owner}/{repo}/commits/{sha}` with the diff media type
+/// to retrieve the raw unified diff for the specified commit.
+pub async fn fetch_commit_diff_async(
+    full_name: &str,
+    commit_oid: &str,
+) -> Result<String, CommandError> {
+    let endpoint = format!("repos/{full_name}/commits/{commit_oid}");
+    let output = tokio_command_for("gh", "GitHub CLI", CommandError::Gh)?
+        .args([
+            "api",
+            &endpoint,
+            "-H",
+            "Accept: application/vnd.github.v3.diff",
+        ])
+        .output()
+        .await
+        .map_err(|e| CommandError::Gh(format!("Failed to run gh CLI: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(CommandError::Gh(format!(
+            "gh api commit diff failed: {}",
+            stderr
+        )));
+    }
+
+    Ok(String::from_utf8(output.stdout)
+        .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()))
+}
+
+/// Async: Fetch the unified diff between two commits using the GitHub compare API.
+pub async fn fetch_commit_range_diff_async(
+    full_name: &str,
+    base_oid: &str,
+    head_oid: &str,
+) -> Result<String, CommandError> {
+    let endpoint = format!("repos/{full_name}/compare/{base_oid}...{head_oid}");
+    let output = tokio_command_for("gh", "GitHub CLI", CommandError::Gh)?
+        .args([
+            "api",
+            &endpoint,
+            "-H",
+            "Accept: application/vnd.github.v3.diff",
+        ])
+        .output()
+        .await
+        .map_err(|e| CommandError::Gh(format!("Failed to run gh CLI: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(CommandError::Gh(format!(
+            "gh api compare diff failed: {}",
+            stderr
+        )));
+    }
+
+    Ok(String::from_utf8(output.stdout)
+        .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()))
+}
+
 /// Close a pull request on GitHub using the `gh` CLI.
 pub fn close_pr(full_name: &str, pr_number: i64) -> Result<(), CommandError> {
     let output = command_for("gh", "GitHub CLI", CommandError::Gh)?

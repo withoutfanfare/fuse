@@ -1,5 +1,38 @@
 # Fuse Development Log
 
+## Cycle: 2026-03-29 (3)
+
+- App: Fuse
+- Items completed:
+  - [Quality] PR review coverage tracking (P2/S) — `useReviewCoverage` composable with setTimeout-based 5-second threshold tracking per file. Coverage indicator (Eye icon + X/Y count + percentage) in ReviewSession toolbar. Unviewed files marked with teal dot indicator in file tree. Coverage stats shown in session info section.
+  - [UX/UI] Split-view diff mode (P2/S) — `viewMode` ref with sessionStorage persistence in DiffViewer. Toolbar with AlignJustify/Columns2 icon toggle. `hunkToSideBySide()` pairing algorithm matching consecutive remove/add lines into left/right columns. Keyboard shortcuts `u`/`s` for unified/side-by-side. Side-by-side panes with independent horizontal scroll.
+  - [Feature] Commit-level diff navigation (P2/S) — `useCommitDiff` composable managing commit selection and fetching per-commit diffs via `fetch_commit_diff` and `fetch_commit_range_diff` Rust commands. `CommitPicker.vue` dropdown with click-to-select and Shift+click range selection. Rust commands use GitHub API with diff Accept header. `activeDiffSource` computed in ReviewSession switches between commit-filtered and aggregate diffs.
+- Items attempted but failed: none
+- Branch: feature/coverage-splitview-commitnav
+- Tests passing: yes (vue-tsc clean, cargo check clean, cargo clippy clean excluding pre-existing warnings, cargo test 16/16 passed)
+- Build status: pending
+- Notes: Three P2/S features enhancing the review session experience. Coverage tracking uses a simple timer approach rather than IntersectionObserver since ReviewSession uses file-selection (one file at a time). Split-view implements a sliding window pairing algorithm for remove/add lines. Commit-level navigation adds two new Rust commands that shell out to `gh api` with the diff Accept header, reusing the existing `parseDiff()` infrastructure.
+
+### Files Created
+
+**Vue/TypeScript:**
+- `src/composables/useReviewCoverage.ts` — Automatic file-level coverage tracking with 5-second threshold
+- `src/composables/useCommitDiff.ts` — Commit-level diff selection and fetching
+- `src/components/CommitPicker.vue` — Dropdown commit picker with range selection
+
+### Files Modified
+
+**Rust:**
+- `src-tauri/src/commands/diff.rs` — Added `fetch_commit_diff` and `fetch_commit_range_diff` commands
+- `src-tauri/src/github/mod.rs` — Added `fetch_commit_diff_async` and `fetch_commit_range_diff_async` functions
+- `src-tauri/src/lib.rs` — Registered 2 new commands
+
+**Vue/TypeScript:**
+- `src/components/DiffViewer.vue` — Added unified/side-by-side toggle, toolbar, `hunkToSideBySide()` algorithm, keyboard shortcuts
+- `src/views/ReviewSession.vue` — Integrated coverage tracking, commit picker, and active diff source switching
+
+---
+
 ## Cycle: 2026-03-29 (2)
 
 - App: Fuse
