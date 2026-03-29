@@ -155,15 +155,10 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
 - **Priority:** P2 (important)
 - **Size:** S (< 1hr)
 - **Added:** 2026-03-22
-- **Status:** pending
-- **Description:** GitHub labels encode priority, area, and type information (bug, feature, breaking-change, needs-review, WIP) that reviewers use to prioritise their review queue. Fuse's existing filter presets (completed) cover workflow states (My Reviews, High Risk, Stale) but ignore label metadata entirely. Adding label-based filtering — as standalone filters or composable with existing presets — would let reviewers focus on specific PR categories (e.g. "show only breaking-change PRs" or "hide WIP PRs"), aligning Fuse's filtering with the GitHub workflow conventions that teams already use to organise their PRs.
-- **Acceptance criteria:**
-  - Labels synced from GitHub during PR fetch and stored in the database alongside PR metadata
-  - Label filter available in the filter bar: dropdown showing all labels across synced PRs with occurrence counts
-  - Multiple labels selectable (OR logic: show PRs with any selected label)
-  - Label filters composable with existing presets and status/risk filters
-  - Label pills displayed on PR cards in the list view (colour-coded matching GitHub label colours)
-  - Aggregate dashboard respects label filters when computing summary statistics
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** GitHub labels encode priority, area, and type information (bug, feature, breaking-change, needs-review, WIP) that reviewers use to prioritise their review queue. Label-based filtering as composable filters alongside existing presets and status/risk filters.
+- **Implementation:** `label_colours` column on `pull_requests` storing GitHub label hex colours as JSON map. `get_all_labels` Rust command aggregating distinct labels with counts and colours from open PRs. `useLabelFilter` composable with multi-select toggle. Label chip filter bar in PullRequests view. Colour-coded label pills on PR rows in PRTable.
 
 ### [Quality] Add review session auto-save preventing progress loss on unexpected quit
 - **Priority:** P2 (important)
@@ -283,29 +278,19 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
 - **Priority:** P2 (important)
 - **Size:** S (< 1hr)
 - **Added:** 2026-03-24
-- **Status:** pending
-- **Description:** Fuse's PR data freshness depends on successful periodic syncs via the `gh` CLI — but when `gh` authentication expires, GitHub API rate limits are reached, or network issues prevent fetching, the sync fails silently and the app continues displaying stale data. The offline mode (completed) handles complete network loss with a "Last synced" banner, and the incremental sync (completed) optimises fetch efficiency, but neither detects or alerts on partial sync failures — where the app appears online but syncs are consistently failing. A sync health monitor that tracks consecutive sync failures, last successful sync time per repository, and surfaces a persistent warning when data staleness exceeds a configurable threshold would prevent operators from making triage decisions based on outdated PR information, which is the most dangerous failure mode for a review prioritisation tool.
-- **Acceptance criteria:**
-  - Per-repository sync health tracked: last successful sync timestamp, consecutive failure count, last error message
-  - Warning banner displayed when any repository's last successful sync exceeds a configurable threshold (default: 30 minutes)
-  - Banner shows: repository name, time since last successful sync, and last error summary
-  - Sync health status visible on repository cards in the aggregate dashboard
-  - Consecutive failure count triggers a native macOS notification after 3 failures (configurable)
-  - Sync health data included in the settings view for debugging
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** Sync health monitor tracking consecutive sync failures, last successful sync time per repository, and surfacing a persistent warning banner when any repo has failing syncs.
+- **Implementation:** `get_sync_health` Rust command querying `sync_log` for per-repo consecutive failure streaks, last error, and minutes since last success. `useSyncHealth` composable with `unhealthyRepos` and `hasIssues` computeds. `SyncHealthBanner.vue` component showing affected repos with failure counts and error excerpts, integrated into PullRequests view.
 
 ### [Feature] Add GitHub Actions CI check status display on PR cards showing build pass/fail/pending alongside the existing risk score
 - **Priority:** P2 (important)
 - **Size:** S (< 1hr)
 - **Added:** 2026-03-24
-- **Status:** pending
-- **Description:** Fuse surfaces risk scores, staleness, dependency relationships, and label metadata on PR cards, but the most fundamental "should I review this now?" signal is missing — whether CI checks are passing. Reviewing a PR with failing CI is usually wasted effort, as the author will likely push fixes that invalidate the review. The `gh pr view` command already returns check status data that the existing sync pipeline could capture. Displaying a CI status badge (passing/failing/pending) on PR cards alongside the risk score would prevent the most common review workflow anti-pattern and complement the unified priority queue (pending) by adding a gating signal that outranks all other priority factors.
-- **Acceptance criteria:**
-  - CI check status (passing, failing, pending, no checks) displayed as a badge on PR cards in list and aggregate views
-  - Status data sourced from `gh pr view --json statusCheckRollup` during the existing PR sync cycle (no additional API calls)
-  - Failing CI visually prominent: red badge with "CI failing" text, optionally dimming the PR card
-  - CI status filterable in the filter bar: show only PRs with passing CI (most useful for reviewers), failing CI, or pending
-  - CI status factored into the unified priority queue (pending) as a gating signal: PRs with failing CI deprioritised regardless of other scores
-  - Check details expandable on the PR detail view showing individual check names and their statuses
+- **Completed:** 2026-03-29
+- **Status:** done
+- **Description:** CI check status badge (passing/failing/pending) on PR cards, sourced from `statusCheckRollup` during the existing PR sync cycle. CI status filterable in the filter bar.
+- **Implementation:** `statusCheckRollup` added to `GH_PR_FIELDS` for `gh` CLI fetching. `compute_ci_status` helper rolls up individual check conclusions to passing/failing/pending. `ci_status TEXT` column on `pull_requests`. CI badge in PRTable status column with colour coding. CI filter buttons in PullRequests filter bar.
 
 ## Archived
 

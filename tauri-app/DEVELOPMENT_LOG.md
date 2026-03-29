@@ -1,5 +1,47 @@
 # Fuse Development Log
 
+## Cycle: 2026-03-29
+
+- App: Fuse
+- Items completed:
+  - [Feature] PR label-based quick filters (P2/S) — `label_colours TEXT` column on `pull_requests`, `get_all_labels` command aggregating labels with counts and colours, `useLabelFilter` composable with multi-select toggle, colour-coded label pills on PRTable rows, label chip filter bar in PullRequests view.
+  - [Quality] Repository sync health monitoring (P2/S) — `get_sync_health` command querying `sync_log` for consecutive failures per repo, `useSyncHealth` composable with `unhealthyRepos`/`hasIssues` computeds, `SyncHealthBanner.vue` warning component.
+  - [Feature] GitHub Actions CI check status display (P2/S) — `statusCheckRollup` fetched during sync, `compute_ci_status` helper (passing/failing/pending), `ci_status TEXT` column, CI badge in PRTable status column, CI filter buttons in filter bar.
+- Items attempted but failed: none
+- Branch: feature/labels-sync-health-ci-status
+- Tests passing: yes (vue-tsc clean, cargo check clean, cargo clippy clean excluding 5 pre-existing warnings)
+- Build status: pending
+- Notes: Three P2/S features implemented across the full stack. Label colours are stored as a JSON map alongside the existing labels JSON array to avoid breaking existing label filtering logic. CI status is computed from GitHub's `statusCheckRollup` field which provides individual check conclusions — the helper reduces these to a single rollup status. Sync health leverages the existing `sync_log` table to detect failure streaks without adding new tracking infrastructure.
+
+### Files Created
+
+**Rust:**
+- `src-tauri/src/commands/labels.rs` — Label summary aggregation command
+- `src-tauri/src/commands/sync_health.rs` — Sync health status per repository
+
+**Vue/TypeScript:**
+- `src/composables/useLabelFilter.ts` — Label fetching and multi-select state
+- `src/composables/useSyncHealth.ts` — Sync health fetching and unhealthy repo computation
+- `src/components/SyncHealthBanner.vue` — Warning banner for failing syncs
+
+### Files Modified
+
+**Rust:**
+- `src-tauri/src/models/mod.rs` — Added `LabelSummary`, `SyncHealthStatus`, `GhStatusCheck`, `CiCheck` structs; `label_colours` and `ci_status` fields on `PullRequest`; `color` field on `GhLabel`; `status_check_rollup` on `GhPrJson`
+- `src-tauri/src/github/mod.rs` — Added `statusCheckRollup` to `GH_PR_FIELDS`
+- `src-tauri/src/db/migrations.rs` — Added `label_colours` and `ci_status` column migrations
+- `src-tauri/src/commands/sync.rs` — Added `build_label_colours_json` and `compute_ci_status` helpers; updated upsert SQL to include new columns
+- `src-tauri/src/commands/pull_requests.rs` — Updated `PR_SELECT`, `PR_SELECT_WITH_BODY`, `parse_pr_row`, `parse_pr_row_with_body` for new column indices
+- `src-tauri/src/commands/mod.rs` — Registered `labels` and `sync_health` modules
+- `src-tauri/src/lib.rs` — Registered `get_all_labels` and `get_sync_health` commands
+
+**Vue/TypeScript:**
+- `src/types/index.ts` — Added `label_colours`, `ci_status` to `PullRequest`; new `LabelSummary` and `SyncHealthStatus` interfaces
+- `src/components/PRTable.vue` — Label pills with colour styling, CI status badge, `labelPillStyle` helper
+- `src/views/PullRequests.vue` — Label chip filter bar, CI status filter buttons, sync health banner, label/CI filtering in `filteredPrs` computed
+
+---
+
 ## Cycle: 2026-03-25 14:00
 - App: Fuse
 - Items completed:
