@@ -381,6 +381,19 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         }
     }
 
+    // Add changed_file_paths column to pull_requests for conflict risk detection.
+    match conn.execute_batch(
+        "ALTER TABLE pull_requests ADD COLUMN changed_file_paths TEXT NOT NULL DEFAULT '[]'",
+    ) {
+        Ok(()) => {}
+        Err(e) => {
+            let msg = e.to_string();
+            if !msg.contains("duplicate column") {
+                return Err(e);
+            }
+        }
+    }
+
     // Insert built-in filter presets
     conn.execute_batch(
         r#"

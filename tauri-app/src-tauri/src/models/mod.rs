@@ -163,6 +163,9 @@ pub struct GhPrJson {
     /// CI check status rollup from GitHub.
     #[serde(rename = "statusCheckRollup", default)]
     pub status_check_rollup: Vec<GhStatusCheck>,
+    /// Changed files with path and line-level stats.
+    #[serde(default)]
+    pub files: Vec<GhFileChange>,
 }
 
 /// A single CI check entry from the `statusCheckRollup` field.
@@ -336,6 +339,35 @@ pub struct CommitAuthor {
 #[derive(Debug, Deserialize)]
 pub struct GhPrCommitsResponse {
     pub commits: Vec<CommitInfo>,
+}
+
+/// A file changed in a pull request, as returned by `gh pr list --json files`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GhFileChange {
+    pub path: String,
+    pub additions: i64,
+    pub deletions: i64,
+}
+
+/// A pair of PRs with overlapping changed files, indicating merge conflict risk.
+#[derive(Debug, Clone, Serialize)]
+pub struct ConflictRiskEntry {
+    pub pr_id: i64,
+    pub pr_number: i64,
+    pub pr_title: String,
+    pub other_pr_id: i64,
+    pub other_pr_number: i64,
+    pub other_pr_title: String,
+    pub overlapping_files: Vec<String>,
+    pub overlap_count: usize,
+}
+
+/// Summary of a single file in a PR diff (path + stats, no hunk content).
+#[derive(Debug, Clone, Serialize)]
+pub struct DiffFileSummary {
+    pub path: String,
+    pub additions: i64,
+    pub deletions: i64,
 }
 
 /// Merge conflict status for a pull request, fetched via the GitHub CLI.

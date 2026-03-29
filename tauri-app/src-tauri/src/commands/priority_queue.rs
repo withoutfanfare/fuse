@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use tauri::State;
 
 use crate::db::DbState;
@@ -13,6 +15,9 @@ struct PriorityWeights {
     risk_weight: f64,
     review_status_weight: f64,
     author_workload_weight: f64,
+    blocking_weight: f64,
+    label_weight: f64,
+    conflict_risk_weight: f64,
 }
 
 impl Default for PriorityWeights {
@@ -23,6 +28,9 @@ impl Default for PriorityWeights {
             risk_weight: 2.0,
             review_status_weight: 1.5,
             author_workload_weight: 0.8,
+            blocking_weight: 1.5,
+            label_weight: 0.5,
+            conflict_risk_weight: 1.0,
         }
     }
 }
@@ -66,10 +74,37 @@ fn compute_risk_score(pr: &PullRequest) -> f64 {
     score.clamp(1.0, 10.0)
 }
 
+/// Context data for priority scoring beyond the PR itself.
+struct PriorityContext {
+    /// Number of open PRs by this PR's author.
+    author_open_count: i64,
+    /// Number of other PRs that this PR is blocking.
+    blocks_count: i64,
+    /// Whether this PR is blocked by another open PR.
+    is_blocked: bool,
+    /// Number of overlapping files with other open PRs.
+    conflict_overlap_count: usize,
+    /// Whether any label matches a priority-boosting pattern.
+    has_priority_label: bool,
+}
+
+/// Labels that indicate urgency and should boost priority score.
+const PRIORITY_LABELS: &[&str] = &[
+    "urgent",
+    "critical",
+    "hotfix",
+    "priority",
+    "p0",
+    "p1",
+    "high-priority",
+    "blocker",
+    "security",
+];
+
 /// Compute the priority score and factor breakdown for a single PR.
 fn compute_priority(
     pr: &PullRequest,
-    author_open_count: i64,
+    ctx: &PriorityContext,
     weights: &PriorityWeights,
 ) -> (f64, Vec<PriorityFactor>) {
     let mut factors = Vec::new();
@@ -149,11 +184,53 @@ fn compute_priority(
     }
 
     // --- Author workload factor: more open PRs from same author = higher priority ---
-    if author_open_count > 2 {
-        let workload_points = (author_open_count as f64 - 2.0).min(3.0);
+    if ctx.author_open_count > 2 {
+        let workload_points = (ctx.author_open_count as f64 - 2.0).min(3.0);
         let weighted = workload_points * weights.author_workload_weight;
         factors.push(PriorityFactor {
-            label: format!("Author has {} open PRs", author_open_count),
+            label: format!("Author has {} open PRs", ctx.author_open_count),
+            points: weighted,
+        });
+        total += weighted;
+    }
+
+    // --- Blocking factor: PRs that unblock others deserve higher priority ---
+    if ctx.blocks_count > 0 {
+        let blocking_points = (ctx.blocks_count as f64).min(3.0);
+        let weighted = blocking_points * weights.blocking_weight;
+        factors.push(PriorityFactor {
+            label: format!("Blocks {} other PR(s)", ctx.blocks_count),
+            points: weighted,
+        });
+        total += weighted;
+    }
+
+    // --- Blocked penalty: PRs blocked by others are lower priority ---
+    if ctx.is_blocked {
+        let penalty = -2.0;
+        factors.push(PriorityFactor {
+            label: "Blocked by another PR".to_string(),
+            points: penalty,
+        });
+        total += penalty;
+    }
+
+    // --- Priority label boost ---
+    if ctx.has_priority_label {
+        let weighted = 2.0 * weights.label_weight;
+        factors.push(PriorityFactor {
+            label: "Priority label".to_string(),
+            points: weighted,
+        });
+        total += weighted;
+    }
+
+    // --- Conflict risk factor: file overlap with other PRs ---
+    if ctx.conflict_overlap_count > 0 {
+        let conflict_points = (ctx.conflict_overlap_count as f64 / 3.0).min(3.0);
+        let weighted = conflict_points * weights.conflict_risk_weight;
+        factors.push(PriorityFactor {
+            label: format!("{} files overlap with other PRs", ctx.conflict_overlap_count),
             points: weighted,
         });
         total += weighted;
@@ -174,6 +251,10 @@ fn compute_priority(
 
 /// Return all open PRs sorted by priority score (highest first).
 /// The "next to review" suggestion is simply the first item.
+///
+/// Combines multiple signals: age, file count, risk score, review status,
+/// author workload, blocking/blocked-by relationships, priority labels,
+/// and file-level conflict risk with other open PRs.
 #[tauri::command]
 pub fn get_priority_queue(
     state: State<'_, DbState>,
@@ -194,10 +275,78 @@ pub fn get_priority_queue(
         .collect::<Result<Vec<_>, _>>()?;
 
     // Pre-compute per-author open PR counts for the workload factor
-    let mut author_counts: std::collections::HashMap<String, i64> =
-        std::collections::HashMap::new();
+    let mut author_counts: HashMap<String, i64> = HashMap::new();
     for pr in &prs {
         *author_counts.entry(pr.author.clone()).or_insert(0) += 1;
+    }
+
+    // Pre-compute blocking relationships from pr_dependencies
+    let mut blocks_count: HashMap<i64, i64> = HashMap::new();
+    let mut blocked_prs: HashSet<i64> = HashSet::new();
+    {
+        let mut dep_stmt = db.prepare(
+            "SELECT pr_id, depends_on_pr_id FROM pr_dependencies",
+        )?;
+        let deps: Vec<(i64, i64)> = dep_stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let open_ids: HashSet<i64> = prs.iter().map(|p| p.id).collect();
+        for (pr_id, depends_on_id) in &deps {
+            if open_ids.contains(pr_id) && open_ids.contains(depends_on_id) {
+                *blocks_count.entry(*depends_on_id).or_insert(0) += 1;
+                blocked_prs.insert(*pr_id);
+            }
+        }
+    }
+
+    // Pre-compute file-level conflict risk (overlapping changed files)
+    let mut conflict_overlap: HashMap<i64, usize> = HashMap::new();
+    {
+        // Group PRs by (repo_id, base_branch) for overlap detection
+        struct FileInfo {
+            id: i64,
+            paths: Vec<String>,
+        }
+        let mut groups: HashMap<(i64, String), Vec<FileInfo>> = HashMap::new();
+        {
+            let mut file_stmt = db.prepare(
+                "SELECT id, repo_id, base_branch, changed_file_paths
+                 FROM pull_requests
+                 WHERE state = 'OPEN' AND merged_at IS NULL AND closed_at IS NULL",
+            )?;
+            let rows: Vec<(i64, i64, String, String)> = file_stmt
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?
+                .filter_map(|r| r.ok())
+                .collect();
+
+            for (id, repo_id, base_branch, paths_json) in rows {
+                let paths: Vec<String> = serde_json::from_str(&paths_json).unwrap_or_default();
+                if !paths.is_empty() {
+                    groups
+                        .entry((repo_id, base_branch))
+                        .or_default()
+                        .push(FileInfo { id, paths });
+                }
+            }
+        }
+
+        for group in groups.values() {
+            for i in 0..group.len() {
+                for j in (i + 1)..group.len() {
+                    let overlap = group[i]
+                        .paths
+                        .iter()
+                        .filter(|p| group[j].paths.contains(p))
+                        .count();
+                    if overlap > 0 {
+                        *conflict_overlap.entry(group[i].id).or_insert(0) += overlap;
+                        *conflict_overlap.entry(group[j].id).or_insert(0) += overlap;
+                    }
+                }
+            }
+        }
     }
 
     let weights = PriorityWeights::default();
@@ -205,8 +354,20 @@ pub fn get_priority_queue(
     let mut queue: Vec<PriorityQueueItem> = prs
         .into_iter()
         .map(|pr| {
-            let author_count = *author_counts.get(&pr.author).unwrap_or(&0);
-            let (priority_score, factors) = compute_priority(&pr, author_count, &weights);
+            let has_priority_label = pr.labels.iter().any(|l| {
+                let lower = l.to_lowercase();
+                PRIORITY_LABELS.iter().any(|p| lower.contains(p))
+            });
+
+            let ctx = PriorityContext {
+                author_open_count: *author_counts.get(&pr.author).unwrap_or(&0),
+                blocks_count: *blocks_count.get(&pr.id).unwrap_or(&0),
+                is_blocked: blocked_prs.contains(&pr.id),
+                conflict_overlap_count: *conflict_overlap.get(&pr.id).unwrap_or(&0),
+                has_priority_label,
+            };
+
+            let (priority_score, factors) = compute_priority(&pr, &ctx, &weights);
             PriorityQueueItem {
                 pr,
                 priority_score,
