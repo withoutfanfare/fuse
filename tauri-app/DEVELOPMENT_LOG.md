@@ -1,5 +1,45 @@
 # Fuse Development Log
 
+## Cycle: 2026-03-29 (2)
+
+- App: Fuse
+- Items completed:
+  - [Quality] Merge conflict risk detection (P2/S) — `changed_file_paths TEXT` column on `pull_requests` populated during sync. `detect_conflict_risks` command comparing file paths across open PRs grouped by (repo_id, base_branch), returning reciprocal `ConflictRiskEntry` pairs. `useConflictRisk` composable with `risksForPr()` and `pairCount`. `ConflictRiskBadge.vue` component.
+  - [Feature] Unified PR review queue prioritisation (P2/S) — Enhanced `get_priority_queue` with `PriorityContext` pre-computing dependency graph, file overlap, and priority label matching. New factors: blocking bonus, blocked penalty, priority label boost, conflict risk factor. New weights: `blocking_weight`, `label_weight`, `conflict_risk_weight`.
+  - [Performance] Lazy diff content loading (P2/S) — `get_pr_file_list` command fetching file metadata via `gh pr view --json files`. `useLazyDiff` composable with `fetchFileList` for fast metadata, `expandFile` fetching full diff on first expansion with Map-based caching.
+- Items attempted but failed: none
+- Branch: feature/conflict-risk-priority-queue-lazy-diff
+- Tests passing: yes (vue-tsc clean, cargo check clean, cargo clippy clean excluding pre-existing warnings)
+- Build status: pending
+- Notes: Three P2/S features implemented across the full stack. Conflict risk detection leverages the new `changed_file_paths` column populated during PR sync, avoiding separate API calls. Priority queue now synthesises five signal dimensions (risk, staleness, blocking, labels, conflict overlap). Lazy diff uses a two-phase approach: fast file list from `gh pr view --json files`, then full unified diff fetched and parsed on first file expansion with all files cached in memory for instant subsequent access.
+
+### Files Created
+
+**Rust:**
+- `src-tauri/src/commands/conflict_risk.rs` — Conflict risk detection between open PRs
+- `src-tauri/src/commands/diff_files.rs` — PR file list fetching for lazy diff
+
+**Vue/TypeScript:**
+- `src/composables/useConflictRisk.ts` — Conflict risk fetching and per-PR filtering
+- `src/composables/useLazyDiff.ts` — Lazy diff loading with expand/collapse and caching
+- `src/components/ConflictRiskBadge.vue` — Conflict risk badge component
+
+### Files Modified
+
+**Rust:**
+- `src-tauri/src/models/mod.rs` — Added `GhFileChange`, `ConflictRiskEntry`, `DiffFileSummary` structs; `files` field on `GhPrJson`
+- `src-tauri/src/github/mod.rs` — Added `files` to `GH_PR_FIELDS`; `fetch_pr_file_list_async` function
+- `src-tauri/src/db/migrations.rs` — Added `changed_file_paths` column migration
+- `src-tauri/src/commands/sync.rs` — Added `build_file_paths_json` helper; updated upsert SQL for `changed_file_paths`
+- `src-tauri/src/commands/priority_queue.rs` — Added `PriorityContext`, `PRIORITY_LABELS`, blocking/label/conflict factors and weights
+- `src-tauri/src/commands/mod.rs` — Registered `conflict_risk` and `diff_files` modules
+- `src-tauri/src/lib.rs` — Registered `detect_conflict_risks` and `get_pr_file_list` commands
+
+**Vue/TypeScript:**
+- `src/types/index.ts` — Added `ConflictRiskEntry`, `DiffFileSummary` interfaces
+
+---
+
 ## Cycle: 2026-03-29
 
 - App: Fuse
