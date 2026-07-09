@@ -397,7 +397,7 @@ pub fn fetch_deployments(full_name: &str, branch: &str) -> Result<Vec<Deployment
 
         handles
             .into_iter()
-            .map(|h| h.join().expect("Deployment status thread panicked"))
+            .filter_map(|h| h.join().ok())
             .collect()
     });
 
