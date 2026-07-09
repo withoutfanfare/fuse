@@ -140,9 +140,18 @@ fn run_claude(prompt: &str) -> Result<String, CommandError> {
     // deadlock against a blocked stdin write on large prompts.
     let stdin_writer = std::thread::spawn(move || stdin.write_all(prompt_owned.as_bytes()));
 
-    let output = child
-        .wait_with_output()
-        .map_err(|e| CommandError::Claude(format!("Failed to read claude output: {}", e)))?;
+    let output = match child.wait_with_output() {
+        Ok(output) => output,
+        Err(e) => {
+            // Wait failed, so join the writer before returning rather than
+            // leaving it detached and possibly still blocked on the pipe.
+            let _ = stdin_writer.join();
+            return Err(CommandError::Claude(format!(
+                "Failed to read claude output: {}",
+                e
+            )));
+        }
+    };
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
