@@ -66,9 +66,9 @@ async function syncRepo(id: number) {
   await prStore.syncAll(id)
 }
 
-async function updateBranch(id: number, branch: string) {
+async function updateBranches(id: number, production: string, integration: string) {
   try {
-    await repoStore.updateBranch(id, branch)
+    await repoStore.updateBranch(id, production, integration.trim() || null)
   } catch {
     // Error is already set on the store
   }
@@ -133,7 +133,7 @@ function prCountForRepo(repoId: number): number {
             :groups="groupsStore.getGroupsForRepo(repo.id)"
             @remove="removeRepo"
             @sync="syncRepo"
-            @update-branch="updateBranch"
+            @update-branches="updateBranches"
           />
           <div class="repo-extras">
             <button
