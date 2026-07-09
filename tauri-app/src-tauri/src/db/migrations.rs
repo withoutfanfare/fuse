@@ -286,6 +286,11 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         "#,
     )?;
 
+    // Stale review detection threshold (hours)
+    conn.execute_batch(
+        "INSERT OR IGNORE INTO app_settings(key, value) VALUES ('stale_review_hours', '24');",
+    )?;
+
     // Notification settings defaults
     conn.execute_batch(
         r#"

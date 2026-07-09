@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { AlertTriangle, GitPullRequest, Search, Bookmark, BookmarkCheck } from 'lucide-vue-next'
+import { AlertTriangle, GitPullRequest, Search, Bookmark, BookmarkCheck, Clock, GitBranch } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
-import type { PullRequest, ReviewStatus, Bookmark as BookmarkType } from '../types'
+import type { PullRequest, ReviewStatus, Bookmark as BookmarkType, StaleReviewItem, PrDependency } from '../types'
 import type { SortKey } from '../stores/filters'
 import { computeRiskScore } from '../composables/useRiskScore'
 import { useHoverPreview } from '../composables/useHoverPreview'
@@ -26,6 +26,10 @@ const props = withDefaults(defineProps<{
   sortAsc?: boolean
   /** Index of the keyboard-focused row, or -1 for none */
   focusedIndex?: number
+  /** Optional lookup map: pr_id → StaleReviewItem for stale review badges */
+  stalePrMap?: Map<number, StaleReviewItem>
+  /** Optional list of dependencies for dependency badges */
+  dependencies?: PrDependency[]
 }>(), {
   loading: false,
   hasFilters: false,
@@ -69,6 +73,26 @@ function toggleSelect(prId: number, event: Event) {
   }
   emit('update:selectedIds', next)
 }
+
+/** How many other PRs a given PR blocks (is depended upon by). */
+const blocksCountMap = computed(() => {
+  const map = new Map<number, number>()
+  if (!props.dependencies) return map
+  for (const d of props.dependencies) {
+    map.set(d.depends_on_pr_id, (map.get(d.depends_on_pr_id) ?? 0) + 1)
+  }
+  return map
+})
+
+/** How many other PRs a given PR depends on. */
+const dependsOnCountMap = computed(() => {
+  const map = new Map<number, number>()
+  if (!props.dependencies) return map
+  for (const d of props.dependencies) {
+    map.set(d.pr_id, (map.get(d.pr_id) ?? 0) + 1)
+  }
+  return map
+})
 
 const tableWrapper = ref<HTMLElement | null>(null)
 const scrolled = ref(false)
@@ -457,6 +481,22 @@ function onTableMouseOut(event: MouseEvent) {
           <div class="pr-title-row">
             <span class="pr-number">#{{ pr.number }}</span>
             <span class="pr-title-text">{{ pr.title }}</span>
+            <span
+              v-if="stalePrMap?.get(pr.id)"
+              class="stale-review-badge"
+              :class="{ 'stale-urgent': stalePrMap.get(pr.id)!.escalationLevel >= 2 }"
+              :title="`Review waiting ${Math.round(stalePrMap.get(pr.id)!.hoursWaiting)}h — escalation level ${stalePrMap.get(pr.id)!.escalationLevel}`"
+            ><Clock :size="12" /> Stale</span>
+            <span
+              v-if="blocksCountMap.get(pr.id)"
+              class="dep-badge dep-blocks"
+              :title="`Blocks ${blocksCountMap.get(pr.id)} other PR(s)`"
+            ><GitBranch :size="12" /> Blocks {{ blocksCountMap.get(pr.id) }}</span>
+            <span
+              v-if="dependsOnCountMap.get(pr.id)"
+              class="dep-badge dep-depends"
+              :title="`Depends on ${dependsOnCountMap.get(pr.id)} other PR(s)`"
+            ><GitBranch :size="12" /> Needs {{ dependsOnCountMap.get(pr.id) }}</span>
           </div>
           <div v-if="pr.labels.length > 0" class="label-pills">
             <span
@@ -884,5 +924,45 @@ function onTableMouseOut(event: MouseEvent) {
 .ci-pending {
   background: rgba(234, 179, 8, 0.2);
   color: var(--color-status-warning);
+}
+
+/* Stale review badge */
+.stale-review-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-status-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.15);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-full);
+  cursor: help;
+}
+.stale-review-badge.stale-urgent {
+  color: var(--color-status-danger, #ef4444);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Dependency badges */
+.dep-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-full);
+  cursor: help;
+}
+.dep-blocks {
+  color: var(--color-status-danger, #ef4444);
+  background: rgba(239, 68, 68, 0.12);
+}
+.dep-depends {
+  color: var(--color-accent, #14b8a6);
+  background: rgba(20, 184, 166, 0.12);
 }
 </style>
