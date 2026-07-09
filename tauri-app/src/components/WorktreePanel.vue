@@ -32,9 +32,10 @@ const branchWorktree = computed(() =>
 )
 
 const branchHasWorktree = computed(() => !!branchWorktree.value)
+const baseRef = computed(() => `origin/${props.baseBranch?.trim() || 'develop'}`)
 
 async function handleCreate() {
-  await addWorktree(props.repoName, props.branch)
+  await addWorktree(props.repoName, props.branch, baseRef.value)
 }
 
 async function handleRemove() {
@@ -58,7 +59,7 @@ function handleStartReview() {
 
 /** Copy the claude review command to clipboard */
 async function copyReviewCommand() {
-  const cmd = `/worktree-review ${props.repoName} ${props.branch} origin/develop`
+  const cmd = `/worktree-review ${props.repoName} ${props.branch} ${baseRef.value}`
   await copy(cmd)
   toastStore.addToast('info', 'Copied to clipboard', 'Review command ready to paste')
 }
@@ -103,7 +104,7 @@ async function openInEditor() {
         >
           Create Review Worktree
         </SButton>
-        <p class="action-hint">Creates worktree based on <code>origin/develop</code></p>
+        <p class="action-hint">Creates worktree based on <code>{{ baseRef }}</code></p>
       </template>
       <template v-else>
         <div class="active-worktree">

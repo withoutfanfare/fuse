@@ -1,13 +1,11 @@
 use tauri::State;
 
+use crate::branch_policy::{direct_to_production_error, is_direct_to_production};
 use crate::db::DbState;
 use crate::github;
 use crate::models::{PullRequest, ReviewRule};
 
 use super::CommandError;
-
-/// Branches that PRs must never merge into.
-const FORBIDDEN_TARGETS: &[&str] = &["main", "master"];
 
 /// Helper to parse a PR row from a query that joins pull_requests with pr_reviews.
 /// This parser works with `PR_SELECT` which omits `p.body` for efficiency.
@@ -112,16 +110,16 @@ fn parse_pr_row_with_body(row: &rusqlite::Row) -> Result<PullRequest, rusqlite::
     })
 }
 
-/// Look up the repo full name (owner/name), PR number, base branch, and draft status for a given PR id.
+/// Look up the repo full name, PR number, branch context, and draft status for a given PR id.
 fn get_pr_context(
     db: &rusqlite::Connection,
     pr_id: i64,
-) -> Result<(String, i64, String, bool), CommandError> {
-    let (repo_id, number, base_branch, is_draft): (i64, i64, String, i64) = db
-        .query_row(
-            "SELECT repo_id, number, base_branch, is_draft FROM pull_requests WHERE id = ?1",
+) -> Result<(String, i64, String, String, String, Option<String>, bool), CommandError> {
+    let (repo_id, number, head_branch, base_branch, is_draft): (i64, i64, String, String, i64) =
+        db.query_row(
+            "SELECT repo_id, number, head_branch, base_branch, is_draft FROM pull_requests WHERE id = ?1",
             [pr_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
         )
         .map_err(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => {
@@ -130,13 +128,22 @@ fn get_pr_context(
             other => CommandError::Db(other),
         })?;
 
-    let full_name: String = db.query_row(
-        "SELECT owner || '/' || name FROM repositories WHERE id = ?1",
+    let (full_name, default_branch, integration_branch): (String, String, Option<String>) =
+        db.query_row(
+        "SELECT owner || '/' || name, default_branch, integration_branch FROM repositories WHERE id = ?1",
         [repo_id],
-        |row| row.get(0),
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     )?;
 
-    Ok((full_name, number, base_branch, is_draft != 0))
+    Ok((
+        full_name,
+        number,
+        head_branch,
+        base_branch,
+        default_branch,
+        integration_branch,
+        is_draft != 0,
+    ))
 }
 
 #[tauri::command]
@@ -318,7 +325,7 @@ pub fn approve_pull_request(
     state: State<'_, DbState>,
 ) -> Result<String, CommandError> {
     let db = state.writer.lock().unwrap();
-    let (full_name, number, _, _) = get_pr_context(&db, pr_id)?;
+    let (full_name, number, _, _, _, _, _) = get_pr_context(&db, pr_id)?;
     drop(db);
 
     let result = github::approve_pr(&full_name, number, body.as_deref())?;
@@ -345,15 +352,22 @@ pub fn merge_pull_request(
     state: State<'_, DbState>,
 ) -> Result<String, CommandError> {
     let db = state.writer.lock().unwrap();
-    let (full_name, number, base_branch, is_draft) = get_pr_context(&db, pr_id)?;
+    let (full_name, number, head_branch, base_branch, default_branch, integration_branch, is_draft) =
+        get_pr_context(&db, pr_id)?;
     drop(db);
 
     // Enforce merge target protection
-    let base_branch_lower = base_branch.to_lowercase();
-    if FORBIDDEN_TARGETS.contains(&base_branch_lower.as_str()) {
-        return Err(CommandError::Gh(format!(
-            "Refused to merge: PR #{} targets '{}'. PRs must only merge into staging, never main or master.",
-            number, base_branch
+    if is_direct_to_production(
+        &base_branch,
+        &head_branch,
+        &default_branch,
+        integration_branch.as_deref(),
+    ) {
+        return Err(CommandError::Gh(direct_to_production_error(
+            number,
+            &base_branch,
+            &default_branch,
+            integration_branch.as_deref(),
         )));
     }
 

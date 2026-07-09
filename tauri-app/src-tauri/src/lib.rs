@@ -1,3 +1,4 @@
+mod branch_policy;
 mod commands;
 mod db;
 mod github;

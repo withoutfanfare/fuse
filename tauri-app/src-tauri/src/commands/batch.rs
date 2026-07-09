@@ -1,24 +1,22 @@
 use tauri::State;
 
+use crate::branch_policy::{direct_to_production_error, is_direct_to_production};
 use crate::db::DbState;
 use crate::github;
 use crate::models::BatchResult;
 
 use super::CommandError;
 
-/// Branches that PRs must never merge into.
-const FORBIDDEN_TARGETS: &[&str] = &["main", "master"];
-
-/// Look up the repo full name (owner/name), PR number, base branch, and draft status for a given PR id.
+/// Look up the repo full name, PR number, branch context, and draft status for a given PR id.
 fn get_pr_context(
     db: &rusqlite::Connection,
     pr_id: i64,
-) -> Result<(String, i64, String, bool), CommandError> {
-    let (repo_id, number, base_branch, is_draft): (i64, i64, String, i64) = db
-        .query_row(
-            "SELECT repo_id, number, base_branch, is_draft FROM pull_requests WHERE id = ?1",
+) -> Result<(String, i64, String, String, String, Option<String>, bool), CommandError> {
+    let (repo_id, number, head_branch, base_branch, is_draft): (i64, i64, String, String, i64) =
+        db.query_row(
+            "SELECT repo_id, number, head_branch, base_branch, is_draft FROM pull_requests WHERE id = ?1",
             [pr_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
         )
         .map_err(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => {
@@ -27,13 +25,22 @@ fn get_pr_context(
             other => CommandError::Db(other),
         })?;
 
-    let full_name: String = db.query_row(
-        "SELECT owner || '/' || name FROM repositories WHERE id = ?1",
+    let (full_name, default_branch, integration_branch): (String, String, Option<String>) =
+        db.query_row(
+        "SELECT owner || '/' || name, default_branch, integration_branch FROM repositories WHERE id = ?1",
         [repo_id],
-        |row| row.get(0),
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     )?;
 
-    Ok((full_name, number, base_branch, is_draft != 0))
+    Ok((
+        full_name,
+        number,
+        head_branch,
+        base_branch,
+        default_branch,
+        integration_branch,
+        is_draft != 0,
+    ))
 }
 
 /// Context needed for a batch network call, gathered from the DB before parallelisation.
@@ -41,10 +48,6 @@ struct PrBatchContext {
     pr_id: i64,
     full_name: String,
     number: i64,
-    #[allow(dead_code)]
-    is_draft: bool,
-    #[allow(dead_code)]
-    base_branch: String,
 }
 
 #[tauri::command]
@@ -59,13 +62,11 @@ pub fn batch_approve(
         let db = state.writer.lock().unwrap();
         for &pr_id in &pr_ids {
             match get_pr_context(&db, pr_id) {
-                Ok((full_name, number, base_branch, is_draft)) => {
+                Ok((full_name, number, _, _, _, _, _)) => {
                     contexts.push(Ok(PrBatchContext {
                         pr_id,
                         full_name,
                         number,
-                        is_draft,
-                        base_branch,
                     }));
                 }
                 Err(e) => {
@@ -154,15 +155,30 @@ pub fn batch_merge(
         let db = state.writer.lock().unwrap();
         for &pr_id in &pr_ids {
             match get_pr_context(&db, pr_id) {
-                Ok((full_name, number, base_branch, is_draft)) => {
+                Ok((
+                    full_name,
+                    number,
+                    head_branch,
+                    base_branch,
+                    default_branch,
+                    integration_branch,
+                    is_draft,
+                )) => {
                     // Enforce merge target protection
-                    if FORBIDDEN_TARGETS.contains(&base_branch.to_lowercase().as_str()) {
+                    if is_direct_to_production(
+                        &base_branch,
+                        &head_branch,
+                        &default_branch,
+                        integration_branch.as_deref(),
+                    ) {
                         contexts.push(Err(BatchResult {
                             pr_id,
                             success: false,
-                            message: format!(
-                                "PR #{} refused: targets '{}'. PRs must only merge into staging, never main or master.",
-                                number, base_branch
+                            message: direct_to_production_error(
+                                number,
+                                &base_branch,
+                                &default_branch,
+                                integration_branch.as_deref(),
                             ),
                         }));
                     } else if is_draft {
@@ -179,8 +195,6 @@ pub fn batch_merge(
                             pr_id,
                             full_name,
                             number,
-                            is_draft,
-                            base_branch,
                         }));
                     }
                 }
