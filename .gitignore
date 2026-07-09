@@ -13,3 +13,5 @@ tauri-app/src-tauri/gen/
 tauri-app/.env
 tauri-app/.env.*
 !tauri-app/.env.example
+
+READINESS-TODO.md
