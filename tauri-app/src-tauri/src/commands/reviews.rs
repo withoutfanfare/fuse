@@ -131,11 +131,14 @@ fn run_claude(prompt: &str) -> Result<String, CommandError> {
             }
         })?;
 
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(prompt.as_bytes())
-            .map_err(|e| CommandError::Claude(format!("Failed to write to claude stdin: {}", e)))?;
-    }
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| CommandError::Claude("Failed to open stdin for claude".to_string()))?;
+    let prompt_owned = prompt.to_string();
+    // Write stdin on a separate thread so a full stdout pipe cannot
+    // deadlock against a blocked stdin write on large prompts.
+    let stdin_writer = std::thread::spawn(move || stdin.write_all(prompt_owned.as_bytes()));
 
     let output = child
         .wait_with_output()
@@ -147,6 +150,21 @@ fn run_claude(prompt: &str) -> Result<String, CommandError> {
             "claude exited with error: {}",
             stderr
         )));
+    }
+
+    match stdin_writer.join() {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => {
+            return Err(CommandError::Claude(format!(
+                "Failed to write to claude stdin: {}",
+                e
+            )))
+        }
+        Err(_) => {
+            return Err(CommandError::Claude(
+                "Claude stdin writer thread panicked".to_string(),
+            ))
+        }
     }
 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())

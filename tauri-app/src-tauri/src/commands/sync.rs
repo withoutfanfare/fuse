@@ -220,7 +220,7 @@ fn fetch_and_upsert_prs_delta(
             let is_draft_int: i64 = if pr.is_draft { 1 } else { 0 };
             let state_upper = pr.state.to_uppercase();
 
-            db.execute(
+            let pid: i64 = db.query_row(
                 r#"INSERT INTO pull_requests (
                     repo_id, number, title, author, state,
                     head_branch, base_branch, additions, deletions, changed_files,
@@ -255,7 +255,8 @@ fn fetch_and_upsert_prs_delta(
                     body = excluded.body,
                     ci_status = excluded.ci_status,
                     changed_file_paths = excluded.changed_file_paths,
-                    last_synced_at = datetime('now')"#,
+                    last_synced_at = datetime('now')
+                RETURNING id"#,
                 rusqlite::params![
                     repo_id,
                     pr.number,
@@ -281,9 +282,9 @@ fn fetch_and_upsert_prs_delta(
                     ci_status,
                     file_paths_json,
                 ],
+                |row| row.get(0),
             )?;
 
-            let pid = db.last_insert_rowid();
             db.execute(
                 "DELETE FROM pr_requested_reviewers WHERE pr_id = ?1",
                 rusqlite::params![pid],
@@ -509,7 +510,7 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
             // Normalise state to uppercase so stats queries work consistently
             let state_upper = pr.state.to_uppercase();
 
-            db.execute(
+            let pid: i64 = db.query_row(
                 r#"INSERT INTO pull_requests (
                     repo_id, number, title, author, state,
                     head_branch, base_branch, additions, deletions, changed_files,
@@ -544,7 +545,8 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     body = excluded.body,
                     ci_status = excluded.ci_status,
                     changed_file_paths = excluded.changed_file_paths,
-                    last_synced_at = datetime('now')"#,
+                    last_synced_at = datetime('now')
+                RETURNING id"#,
                 rusqlite::params![
                     repo_id,
                     pr.number,
@@ -570,11 +572,8 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                     ci_status,
                     file_paths_json,
                 ],
+                |row| row.get(0),
             )?;
-
-            // Use last_insert_rowid() to get the internal PR id after upsert.
-            // SQLite (≥ 3.35) sets this to the rowid regardless of insert/update path.
-            let pid = db.last_insert_rowid();
 
             {
                 // Clear existing reviewer assignments for this PR, then re-insert
@@ -635,5 +634,49 @@ fn fetch_and_upsert_prs(repo_id: i64, full_name: &str, db_mutex: &Mutex<Connecti
                 changes: Vec::new(),
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// `last_insert_rowid()` is NOT updated when an upsert takes the
+    /// DO UPDATE path, so it must never be used to find the row an
+    /// upsert touched. `RETURNING id` is correct on both paths.
+    #[test]
+    fn upsert_returning_yields_correct_id_on_update_path() {
+        let db = rusqlite::Connection::open_in_memory().unwrap();
+        db.execute_batch(
+            "CREATE TABLE pull_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                repo_id INTEGER NOT NULL,
+                number INTEGER NOT NULL,
+                title TEXT,
+                UNIQUE(repo_id, number)
+            );",
+        )
+        .unwrap();
+
+        let upsert = "INSERT INTO pull_requests (repo_id, number, title)
+             VALUES (?1, ?2, ?3)
+             ON CONFLICT(repo_id, number) DO UPDATE SET title = excluded.title
+             RETURNING id";
+
+        let id_a: i64 = db
+            .query_row(upsert, rusqlite::params![1, 101, "PR A"], |r| r.get(0))
+            .unwrap();
+        let id_b: i64 = db
+            .query_row(upsert, rusqlite::params![1, 102, "PR B"], |r| r.get(0))
+            .unwrap();
+        assert_ne!(id_a, id_b);
+
+        // Re-upsert PR A (UPDATE path). RETURNING must give PR A's id back.
+        let id_a_again: i64 = db
+            .query_row(upsert, rusqlite::params![1, 101, "PR A v2"], |r| r.get(0))
+            .unwrap();
+        assert_eq!(id_a, id_a_again);
+
+        // The trap this fix removes: last_insert_rowid() still points at
+        // PR B after PR A's update.
+        assert_eq!(db.last_insert_rowid(), id_b);
     }
 }

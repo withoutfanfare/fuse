@@ -109,7 +109,17 @@ pub fn batch_approve(
 
         handles
             .into_iter()
-            .map(|h| h.join().expect("Batch approve thread panicked"))
+            .zip(contexts.iter())
+            .map(|(h, ctx)| {
+                h.join().unwrap_or_else(|_| BatchResult {
+                    pr_id: match ctx {
+                        Ok(c) => c.pr_id,
+                        Err(e) => e.pr_id,
+                    },
+                    success: false,
+                    message: "Internal error: approve worker thread panicked".to_string(),
+                })
+            })
             .collect()
     });
 
@@ -215,7 +225,17 @@ pub fn batch_merge(
 
         handles
             .into_iter()
-            .map(|h| h.join().expect("Batch merge thread panicked"))
+            .zip(contexts.iter())
+            .map(|(h, ctx)| {
+                h.join().unwrap_or_else(|_| BatchResult {
+                    pr_id: match ctx {
+                        Ok(c) => c.pr_id,
+                        Err(e) => e.pr_id,
+                    },
+                    success: false,
+                    message: "Internal error: merge worker thread panicked".to_string(),
+                })
+            })
             .collect()
     });
 
