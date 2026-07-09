@@ -10,6 +10,7 @@ const props = defineProps<{
   repoName: string
   branch: string
   baseBranch?: string
+  directToProduction?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -31,13 +32,6 @@ const branchWorktree = computed(() =>
 )
 
 const branchHasWorktree = computed(() => !!branchWorktree.value)
-
-/** PRs targeting main or master should never be merged — warn the user. */
-const isForbiddenTarget = computed(() => {
-  if (!props.baseBranch) return false
-  const base = props.baseBranch.toLowerCase()
-  return base === 'main' || base === 'master'
-})
 
 async function handleCreate() {
   await addWorktree(props.repoName, props.branch)
@@ -89,11 +83,11 @@ async function openInEditor() {
     </div>
 
     <!-- Merge protection warning -->
-    <div v-if="isForbiddenTarget" class="merge-warning">
+    <div v-if="directToProduction" class="merge-warning">
       <AlertTriangle :size="14" class="warning-icon" />
       <div class="warning-text">
         <strong>Dangerous target branch</strong>
-        <p>This PR targets <code>{{ baseBranch }}</code>. PRs should only merge into <code>staging</code> — never main or master.</p>
+        <p>This PR targets <code>{{ baseBranch }}</code> directly — expected flow is via your integration branch first.</p>
       </div>
     </div>
 

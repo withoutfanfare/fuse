@@ -21,6 +21,7 @@ import { useDeploymentStatus } from '../composables/useDeploymentStatus'
 import { useCache } from '../composables/useCache'
 import { useFocusMode } from '../composables/useFocusMode'
 import { useSessionAutoSave } from '../composables/useSessionAutoSave'
+import { isDirectToProduction } from '../composables/useBranchPolicy'
 import type { PullRequest, ReviewStatus, ReviewRule, CiCheck, PrCommentsResponse } from '../types'
 import { SResizableSplit, STag } from '@stuntrocket/ui'
 import RiskGauge from '../components/RiskGauge.vue'
@@ -142,6 +143,10 @@ const repoName = computed(() => {
   const repo = repoStore.repos.find(r => r.id === pr.value!.repo_id)
   return repo ? repo.name : ''
 })
+
+const currentRepo = computed(() =>
+  pr.value ? repoStore.repos.find(r => r.id === pr.value!.repo_id) : undefined,
+)
 
 const repoFullName = computed(() => {
   if (!pr.value) return ''
@@ -277,8 +282,7 @@ const isOpen = computed(() => pr.value && !pr.value.merged_at && !pr.value.close
 const isDraftOpen = computed(() => Boolean(pr.value && isOpen.value && pr.value.is_draft))
 const isForbiddenTarget = computed(() => {
   if (!pr.value) return false
-  const base = pr.value.base_branch.toLowerCase()
-  return base === 'main' || base === 'master'
+  return isDirectToProduction(pr.value, currentRepo.value)
 })
 
 async function handleApprove() {
@@ -458,6 +462,7 @@ function formatDate(dateStr: string): string {
                 :repo-name="repoName"
                 :branch="pr.head_branch"
                 :base-branch="pr.base_branch"
+                :direct-to-production="isForbiddenTarget"
               />
             </div>
           </Transition>
@@ -476,7 +481,7 @@ function formatDate(dateStr: string): string {
           <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
         <span class="warning-text">
-          Targets <code>{{ pr.base_branch }}</code> — review carefully before merging to a protected branch
+          Targets <code>{{ pr.base_branch }}</code> directly — review carefully before merging to your production branch
         </span>
       </div>
     </Transition>
@@ -606,7 +611,7 @@ function formatDate(dateStr: string): string {
           <h2 class="section-title">GitHub Actions</h2>
 
           <div v-if="isForbiddenTarget" class="merge-warning-inline">
-            <strong>Merge blocked</strong> — this PR targets <code>{{ pr.base_branch }}</code>. PRs must only merge into staging.
+            <strong>Merge blocked</strong> — this PR targets <code>{{ pr.base_branch }}</code> directly — review carefully before merging to your production branch.
           </div>
 
           <div class="approve-body-group">

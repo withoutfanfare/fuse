@@ -7,6 +7,8 @@ import type { SortKey } from '../stores/filters'
 import { computeRiskScore } from '../composables/useRiskScore'
 import { useHoverPreview } from '../composables/useHoverPreview'
 import { usePullRequestsStore } from '../stores/pullRequests'
+import { useRepositoriesStore } from '../stores/repositories'
+import { isDirectToProduction } from '../composables/useBranchPolicy'
 import RiskGauge from './RiskGauge.vue'
 import SizeBar from './SizeBar.vue'
 import AuthorAvatar from './AuthorAvatar.vue'
@@ -235,8 +237,8 @@ function stateClass(pr: PullRequest): string {
 }
 
 function isForbiddenTarget(pr: PullRequest): boolean {
-  const base = pr.base_branch.toLowerCase()
-  return base === 'main' || base === 'master'
+  const repo = repoStore.repos.find(r => r.id === pr.repo_id)
+  return isDirectToProduction(pr, repo)
 }
 
 function labelPillStyle(pr: PullRequest, label: string): Record<string, string> {
@@ -259,6 +261,7 @@ const hoveredPr = computed(() => {
 
 /* --- Inline quick-status popover (Improvement 6) --- */
 const prStore = usePullRequestsStore()
+const repoStore = useRepositoriesStore()
 const quickStatusPrId = ref<number | null>(null)
 const quickStatusAnchorRect = ref<DOMRect | null>(null)
 
@@ -515,7 +518,7 @@ function onTableMouseOut(event: MouseEvent) {
           <code>{{ pr.head_branch }}</code>
           <span class="branch-arrow">&rarr;</span>
           <code :class="{ 'forbidden-target': isForbiddenTarget(pr) }">{{ pr.base_branch }}</code>
-          <AlertTriangle v-if="isForbiddenTarget(pr)" :size="14" class="target-warn" title="PRs should target staging, not main/master" />
+          <AlertTriangle v-if="isForbiddenTarget(pr)" :size="14" class="target-warn" :title="'Targets ' + pr.base_branch + ' directly — this is your production branch'" />
         </td>
         <td class="col-size">
           <span class="additions">+{{ pr.additions }}</span>
