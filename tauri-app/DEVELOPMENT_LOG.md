@@ -1,5 +1,30 @@
 # Fuse Development Log
 
+## Cycle: 2026-07-09 (stability)
+
+- App: Fuse
+- Items completed:
+  - [Bug] UTF-8 truncation panic in notifications (P1) — `truncate()` in `polling.rs` sliced on a byte index, panicking on multi-byte titles (emoji, accents) and permanently killing the background poll loop for the session. Now counts characters, never slices mid-character.
+  - [Bug] Wrong PR id after upsert corrupting reviewer workload (P1) — both upsert sites in `sync.rs` read `last_insert_rowid()`, which SQLite does not update on the `ON CONFLICT DO UPDATE` path. Incremental sync (always the update path in steady state) therefore attached requested reviewers to the wrong PR, corrupting `get_reviewer_workload`. Fixed with `RETURNING id` read via `query_row` (correct on both insert and update paths).
+  - [Reliability] Panicked batch worker no longer aborts the whole operation — `batch.rs` (approve/merge) now degrades a panicked worker to a per-item failed `BatchResult`; `github/mod.rs` drops a panicked deployment-status worker instead of `.expect()`-ing.
+  - [Reliability] Claude stdin pipe deadlock — `run_claude` in `reviews.rs` now writes the prompt on a separate thread while the main thread drains output, so a large review prompt filling the stdout pipe cannot deadlock. A missing stdin handle is now an error instead of silently dropping the prompt.
+- Items attempted but failed: none
+- Branch: fix/stability-review-fixes
+- Tests passing: yes (cargo build clean bar one pre-existing warning; cargo test 21/21 passed, including 5 new tests). Frontend build not run — private npm registry offline; no frontend files were touched.
+- Build status: pending
+- Notes: Implements `docs/plans/08-stability-bug-fixes.md` Tasks 1–4. Task 5 (parking_lot mutex swap) skipped as optional. All changes are Rust-only, surgical, no schema or frontend changes.
+
+### Files Modified
+
+**Rust:**
+- `src-tauri/src/polling.rs` — Character-boundary-safe `truncate()` + tests
+- `src-tauri/src/commands/sync.rs` — `RETURNING id` at both upsert sites + test
+- `src-tauri/src/commands/batch.rs` — Per-item degradation on worker panic (approve + merge)
+- `src-tauri/src/github/mod.rs` — Drop panicked deployment-status worker
+- `src-tauri/src/commands/reviews.rs` — Threaded stdin write in `run_claude`
+
+---
+
 ## Cycle: 2026-03-29 (3)
 
 - App: Fuse
