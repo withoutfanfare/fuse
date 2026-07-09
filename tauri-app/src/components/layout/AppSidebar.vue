@@ -4,16 +4,25 @@ import { useRoute } from 'vue-router'
 import { LayoutDashboard, GitPullRequest, FolderGit2, Settings, ChevronLeft, ChevronRight, Users, Clock, BarChart3, Bookmark, LayoutGrid } from 'lucide-vue-next'
 import { SSidebar, SSidebarLink, SIconButton, SBadge, SDivider, useSidebarCollapse } from '@stuntrocket/ui'
 import { usePullRequestsStore } from '../../stores/pullRequests'
+import { useRepositoriesStore } from '../../stores/repositories'
 import { useRecentPrs } from '../../composables/useRecentPrs'
 import { useGlobalBookmarks } from '../../composables/useBookmarks'
 
 const route = useRoute()
 const prStore = usePullRequestsStore()
+const repoStore = useRepositoriesStore()
 const { collapsed, toggle } = useSidebarCollapse('sidebar-collapsed')
 const { recentPrs } = useRecentPrs()
 const { bookmarkCount, fetchBookmarkCount } = useGlobalBookmarks()
 
 const pendingCount = computed(() => prStore.pendingReview.length)
+
+// Only show recent PRs whose repository still exists — entries linger in
+// localStorage after a repo is removed and would otherwise be dead links.
+const visibleRecentPrs = computed(() => {
+  const existing = new Set(repoStore.repos.map(r => `${r.owner}/${r.name}`))
+  return recentPrs.value.filter(entry => existing.has(entry.repoFullName))
+})
 
 const sidebarWidth = computed(() => collapsed.value ? '56px' : '224px')
 
@@ -82,13 +91,13 @@ const navGroups = [
 
     <!-- Recent PRs -->
     <template #default>
-      <section v-if="recentPrs.length > 0" class="recent-prs">
+      <section v-if="visibleRecentPrs.length > 0" class="recent-prs">
         <div class="recent-prs-header">
           <Clock :size="14" class="shrink-0 text-[var(--color-text-secondary)]" />
           <span v-if="!collapsed" class="recent-prs-label">Recent</span>
         </div>
         <SSidebarLink
-          v-for="entry in recentPrs"
+          v-for="entry in visibleRecentPrs"
           :key="entry.id"
           :to="{ name: 'pr-detail', params: { id: entry.id } } as any"
           :active="false"
