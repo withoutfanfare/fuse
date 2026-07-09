@@ -166,11 +166,44 @@ fn short_repo(full_name: &str) -> &str {
     full_name.rsplit('/').next().unwrap_or(full_name)
 }
 
-/// Truncate a string to a maximum length, appending ellipsis if needed.
+/// Truncate a string to a maximum number of characters, appending an
+/// ellipsis if needed. Counts characters (not bytes) so multi-byte
+/// text such as emoji never causes an out-of-boundary slice.
 fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
+    if s.chars().count() <= max {
         s.to_string()
     } else {
-        format!("{}…", &s[..max])
+        let truncated: String = s.chars().take(max).collect();
+        format!("{}…", truncated)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truncate_short_string_unchanged() {
+        assert_eq!(truncate("short title", 40), "short title");
+    }
+
+    #[test]
+    fn truncate_long_ascii_appends_ellipsis() {
+        let s = "a".repeat(50);
+        assert_eq!(truncate(&s, 40), format!("{}…", "a".repeat(40)));
+    }
+
+    #[test]
+    fn truncate_multibyte_does_not_panic() {
+        // Each emoji is 4 bytes. The old code sliced at byte 40, which
+        // lands mid-character and panics.
+        let s = "🎉".repeat(60);
+        assert_eq!(truncate(&s, 40), format!("{}…", "🎉".repeat(40)));
+    }
+
+    #[test]
+    fn truncate_multibyte_at_exact_limit_unchanged() {
+        let s = "é".repeat(40);
+        assert_eq!(truncate(&s, 40), s);
     }
 }
