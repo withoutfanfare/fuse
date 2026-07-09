@@ -1,4 +1,16 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+/// Deserialise a sequence field that the `gh` CLI may emit as `null` instead
+/// of `[]` (e.g. `statusCheckRollup` on a PR with no checks). Treats both a
+/// missing field and an explicit `null` as an empty collection, so one such
+/// PR no longer fails the whole repository sync.
+fn deserialize_null_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Default + Deserialize<'de>,
+{
+    Ok(Option::deserialize(deserializer)?.unwrap_or_default())
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repository {
@@ -146,6 +158,7 @@ pub struct GhPrJson {
     #[serde(rename = "isDraft")]
     pub is_draft: bool,
     pub url: String,
+    #[serde(default, deserialize_with = "deserialize_null_default")]
     pub labels: Vec<GhLabel>,
     pub mergeable: Option<String>,
     #[serde(rename = "createdAt")]
@@ -158,13 +171,21 @@ pub struct GhPrJson {
     pub closed_at: Option<String>,
     pub body: Option<String>,
     /// Requested reviewers for this PR (GitHub `reviewRequests` field).
-    #[serde(rename = "reviewRequests", default)]
+    #[serde(
+        rename = "reviewRequests",
+        default,
+        deserialize_with = "deserialize_null_default"
+    )]
     pub review_requests: Vec<GhReviewRequest>,
     /// CI check status rollup from GitHub.
-    #[serde(rename = "statusCheckRollup", default)]
+    #[serde(
+        rename = "statusCheckRollup",
+        default,
+        deserialize_with = "deserialize_null_default"
+    )]
     pub status_check_rollup: Vec<GhStatusCheck>,
     /// Changed files with path and line-level stats.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_default")]
     pub files: Vec<GhFileChange>,
 }
 
@@ -485,4 +506,46 @@ pub struct ReviewSession {
     pub files_reviewed: Vec<String>,
     pub session_notes: Option<String>,
     pub status: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // gh emits `statusCheckRollup: null` (not []) for a PR whose head commit
+    // has no checks, and can emit null for the other array fields too. All
+    // must deserialise to empty vecs rather than erroring the whole sync.
+    #[test]
+    fn gh_pr_json_tolerates_null_array_fields() {
+        let json = r#"{
+            "number": 1,
+            "title": "TASK-1",
+            "author": {"login": "octocat"},
+            "state": "OPEN",
+            "headRefName": "feature",
+            "baseRefName": "main",
+            "additions": 1,
+            "deletions": 0,
+            "changedFiles": 1,
+            "reviewDecision": null,
+            "isDraft": false,
+            "url": "https://example.com/pr/1",
+            "labels": null,
+            "mergeable": null,
+            "createdAt": "2026-01-01T00:00:00Z",
+            "updatedAt": "2026-01-01T00:00:00Z",
+            "mergedAt": null,
+            "closedAt": null,
+            "body": null,
+            "reviewRequests": null,
+            "statusCheckRollup": null,
+            "files": null
+        }"#;
+        let pr: GhPrJson =
+            serde_json::from_str(json).expect("null array fields should deserialise to empty vecs");
+        assert!(pr.labels.is_empty());
+        assert!(pr.review_requests.is_empty());
+        assert!(pr.status_check_rollup.is_empty());
+        assert!(pr.files.is_empty());
+    }
 }
