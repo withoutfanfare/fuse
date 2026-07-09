@@ -62,6 +62,27 @@ mod tests {
     }
 
     #[test]
+    fn branch_policy_is_case_insensitive() {
+        assert!(!is_direct_to_production(
+            "MAIN",
+            "Develop",
+            "main",
+            Some("develop"),
+        ));
+    }
+
+    #[test]
+    fn missing_or_empty_integration_blocks_production_targets() {
+        assert!(is_direct_to_production("main", "feature/login", "main", None));
+        assert!(is_direct_to_production(
+            "main",
+            "feature/login",
+            "main",
+            Some(" "),
+        ));
+    }
+
+    #[test]
     fn custom_production_branch_blocks() {
         assert!(is_direct_to_production(
             "release",
