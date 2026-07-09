@@ -3,6 +3,7 @@ export interface Repository {
   owner: string
   name: string
   default_branch: string
+  integration_branch: string | null
   added_at: string
 }
 

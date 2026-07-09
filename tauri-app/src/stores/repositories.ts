@@ -44,10 +44,18 @@ export const useRepositoriesStore = defineStore('repositories', () => {
     }
   }
 
-  async function updateBranch(id: number, defaultBranch: string) {
+  async function updateBranch(
+    id: number,
+    defaultBranch: string,
+    integrationBranch: string | null,
+  ) {
     error.value = null
     try {
-      await invoke<Repository>('update_repository_branch', { id, defaultBranch })
+      await invoke<Repository>('update_repository_branch', {
+        id,
+        defaultBranch,
+        integrationBranch,
+      })
       await fetchAll()
     } catch (e) {
       error.value = String(e)
