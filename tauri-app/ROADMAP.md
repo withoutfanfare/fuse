@@ -4,6 +4,15 @@ Desktop PR review companion — intelligent pull request monitoring, triage, and
 
 ## Completed
 
+### [Bug] Stability & reliability fixes from July 2026 code review
+- **Priority:** P1 (critical)
+- **Size:** S (< 1hr)
+- **Added:** 2026-07-09
+- **Completed:** 2026-07-09
+- **Status:** done
+- **Description:** Five defects from the code review. A UTF-8 truncation panic in `polling.rs` that killed the background poll loop on emoji/accented PR titles; a `last_insert_rowid()` misuse in `sync.rs` that attached requested reviewers to the wrong PR (corrupting reviewer workload); panicked batch workers aborting whole approve/merge operations; and a potential stdin/stdout pipe deadlock when sending large prompts to the Claude CLI.
+- **Implementation:** Character-boundary-safe `truncate()`; `RETURNING id` at both PR upsert sites; per-item failure degradation for panicked batch/deployment workers; threaded stdin write in `run_claude`. Rust-only, no schema or frontend changes. Implements `docs/plans/08-stability-bug-fixes.md` Tasks 1–4 (Task 5 optional, skipped).
+
 ### [Feature] Add PR notification system with configurable alerts
 - **Priority:** P2 (important)
 - **Size:** M (1-3hrs)
