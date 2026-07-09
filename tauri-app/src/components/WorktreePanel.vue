@@ -10,6 +10,7 @@ const props = defineProps<{
   repoName: string
   branch: string
   baseBranch?: string
+  directToProduction?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -31,16 +32,10 @@ const branchWorktree = computed(() =>
 )
 
 const branchHasWorktree = computed(() => !!branchWorktree.value)
-
-/** PRs targeting main or master should never be merged — warn the user. */
-const isForbiddenTarget = computed(() => {
-  if (!props.baseBranch) return false
-  const base = props.baseBranch.toLowerCase()
-  return base === 'main' || base === 'master'
-})
+const baseRef = computed(() => `origin/${props.baseBranch?.trim() || 'develop'}`)
 
 async function handleCreate() {
-  await addWorktree(props.repoName, props.branch)
+  await addWorktree(props.repoName, props.branch, baseRef.value)
 }
 
 async function handleRemove() {
@@ -64,7 +59,7 @@ function handleStartReview() {
 
 /** Copy the claude review command to clipboard */
 async function copyReviewCommand() {
-  const cmd = `/worktree-review ${props.repoName} ${props.branch} origin/develop`
+  const cmd = `/worktree-review ${props.repoName} ${props.branch} ${baseRef.value}`
   await copy(cmd)
   toastStore.addToast('info', 'Copied to clipboard', 'Review command ready to paste')
 }
@@ -89,11 +84,11 @@ async function openInEditor() {
     </div>
 
     <!-- Merge protection warning -->
-    <div v-if="isForbiddenTarget" class="merge-warning">
+    <div v-if="directToProduction" class="merge-warning">
       <AlertTriangle :size="14" class="warning-icon" />
       <div class="warning-text">
         <strong>Dangerous target branch</strong>
-        <p>This PR targets <code>{{ baseBranch }}</code>. PRs should only merge into <code>staging</code> — never main or master.</p>
+        <p>This PR targets <code>{{ baseBranch }}</code> directly — expected flow is via your integration branch first.</p>
       </div>
     </div>
 
@@ -109,7 +104,7 @@ async function openInEditor() {
         >
           Create Review Worktree
         </SButton>
-        <p class="action-hint">Creates worktree based on <code>origin/develop</code></p>
+        <p class="action-hint">Creates worktree based on <code>{{ baseRef }}</code></p>
       </template>
       <template v-else>
         <div class="active-worktree">

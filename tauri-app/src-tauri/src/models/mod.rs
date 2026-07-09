@@ -18,6 +18,7 @@ pub struct Repository {
     pub owner: String,
     pub name: String,
     pub default_branch: String,
+    pub integration_branch: Option<String>,
     pub added_at: String,
 }
 

@@ -14,13 +14,16 @@ const props = defineProps<{
 const emit = defineEmits<{
   remove: [id: number]
   sync: [id: number]
-  'update-branch': [id: number, branch: string]
+  'update-branches': [id: number, production: string, integration: string]
 }>()
 
 // Inline branch editing state
 const editingBranch = ref(false)
 const editBranchValue = ref('')
 const branchInput = ref<InstanceType<typeof SInput> | null>(null)
+const editingIntegration = ref(false)
+const editIntegrationValue = ref('')
+const integrationInput = ref<InstanceType<typeof SInput> | null>(null)
 
 function startEditBranch() {
   editBranchValue.value = props.repo.default_branch
@@ -39,7 +42,7 @@ function cancelEditBranch() {
 function saveBranch() {
   const trimmed = editBranchValue.value.trim()
   if (trimmed && trimmed !== props.repo.default_branch) {
-    emit('update-branch', props.repo.id, trimmed)
+    emit('update-branches', props.repo.id, trimmed, props.repo.integration_branch ?? '')
   }
   editingBranch.value = false
 }
@@ -50,6 +53,33 @@ function onBranchKeydown(event: KeyboardEvent) {
   } else if (event.key === 'Escape') {
     cancelEditBranch()
   }
+}
+
+function startEditIntegration() {
+  editIntegrationValue.value = props.repo.integration_branch ?? ''
+  editingIntegration.value = true
+  nextTick(() => {
+    const input = integrationInput.value?.$el?.querySelector('input') as HTMLInputElement | null
+    input?.focus()
+    input?.select()
+  })
+}
+
+function cancelEditIntegration() {
+  editingIntegration.value = false
+}
+
+function saveIntegration() {
+  const trimmed = editIntegrationValue.value.trim()
+  if (trimmed !== (props.repo.integration_branch ?? '')) {
+    emit('update-branches', props.repo.id, props.repo.default_branch, trimmed)
+  }
+  editingIntegration.value = false
+}
+
+function onIntegrationKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') saveIntegration()
+  else if (event.key === 'Escape') cancelEditIntegration()
 }
 </script>
 
@@ -81,7 +111,7 @@ function onBranchKeydown(event: KeyboardEvent) {
     </div>
     <div class="repo-meta">
       <span class="meta-item branch-meta">
-        Branch:
+        Production:
         <template v-if="editingBranch">
           <SInput
             ref="branchInput"
@@ -95,6 +125,26 @@ function onBranchKeydown(event: KeyboardEvent) {
         <template v-else>
           <code class="branch-display" @click="startEditBranch">
             {{ repo.default_branch }}
+            <Pencil :size="11" class="branch-edit-icon" />
+          </code>
+        </template>
+      </span>
+      <span class="meta-item branch-meta">
+        Integration:
+        <template v-if="editingIntegration">
+          <SInput
+            ref="integrationInput"
+            v-model="editIntegrationValue"
+            size="sm"
+            class="branch-edit-input"
+            placeholder="none"
+            @keydown="onIntegrationKeydown"
+            @blur="saveIntegration"
+          />
+        </template>
+        <template v-else>
+          <code class="branch-display" @click="startEditIntegration">
+            {{ repo.integration_branch || '—' }}
             <Pencil :size="11" class="branch-edit-icon" />
           </code>
         </template>
