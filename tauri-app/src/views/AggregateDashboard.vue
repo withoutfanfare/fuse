@@ -2,13 +2,16 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
+import { Clock } from 'lucide-vue-next'
 import StatsCard from '../components/StatsCard.vue'
 import SkeletonStatsCard from '../components/skeletons/SkeletonStatsCard.vue'
 import ContentLoader from '../components/ContentLoader.vue'
 import { SSectionHeader, SEmptyState, SCard } from '@stuntrocket/ui'
+import { useStaleReviews } from '../composables/useStaleReviews'
 import type { AggregateDashboard } from '../types'
 
 const router = useRouter()
+const { attentionItems, fetchStaleReviews } = useStaleReviews()
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -16,7 +19,11 @@ const dashboard = ref<AggregateDashboard | null>(null)
 
 onMounted(async () => {
   try {
-    dashboard.value = await invoke<AggregateDashboard>('get_aggregate_dashboard')
+    const [dashData] = await Promise.all([
+      invoke<AggregateDashboard>('get_aggregate_dashboard'),
+      fetchStaleReviews(),
+    ])
+    dashboard.value = dashData
   } catch (e) {
     error.value = String(e)
   } finally {
@@ -96,6 +103,34 @@ function riskBadgeClass(score: number): string {
           label="Stale (>3d)"
           variant="neutral"
         />
+      </section>
+
+      <!-- Needs your attention -->
+      <section v-if="attentionItems.length > 0" class="section attention-section">
+        <SSectionHeader :title="`Needs Your Attention (${attentionItems.length})`" />
+        <div class="attention-list">
+          <div
+            v-for="item in attentionItems.slice(0, 5)"
+            :key="item.pr.id"
+            class="attention-row"
+            @click="navigateToPr(item.pr.id)"
+          >
+            <span class="attention-icon" :class="{ 'attention-urgent': item.escalationLevel >= 2 }">
+              <Clock :size="16" />
+            </span>
+            <span class="attention-pr-info">
+              <span class="attention-pr-number">#{{ item.pr.number }}</span>
+              {{ item.pr.title }}
+            </span>
+            <span class="attention-wait">
+              {{ Math.round(item.hoursWaiting) }}h waiting
+            </span>
+            <span
+              class="attention-level"
+              :class="`level-${item.escalationLevel}`"
+            >Level {{ item.escalationLevel }}</span>
+          </div>
+        </div>
       </section>
 
       <!-- Top risk PRs -->
@@ -324,5 +359,87 @@ function riskBadgeClass(score: number): string {
   gap: var(--space-4);
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+/* Attention section */
+.attention-list {
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.attention-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.attention-row:last-child {
+  border-bottom: none;
+}
+
+.attention-row:hover {
+  background: var(--color-surface-hover);
+}
+
+.attention-icon {
+  color: var(--color-status-warning, #f59e0b);
+  flex-shrink: 0;
+}
+
+.attention-icon.attention-urgent {
+  color: var(--color-status-danger, #ef4444);
+}
+
+.attention-pr-info {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-pr-number {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-right: var(--space-1);
+}
+
+.attention-wait {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.attention-level {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.level-1 {
+  color: var(--color-status-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.level-2 {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.level-3 {
+  color: var(--color-status-danger, #ef4444);
+  background: rgba(239, 68, 68, 0.15);
 }
 </style>
