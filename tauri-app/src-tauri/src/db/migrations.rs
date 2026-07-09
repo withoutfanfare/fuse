@@ -328,6 +328,18 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         }
     }
 
+    // Add integration_branch to repositories for two-branch PR tracking.
+    // Nullable: repos without a two-tier flow leave it unset.
+    match conn.execute_batch("ALTER TABLE repositories ADD COLUMN integration_branch TEXT") {
+        Ok(()) => {}
+        Err(e) => {
+            let msg = e.to_string();
+            if !msg.contains("duplicate column name") {
+                return Err(e);
+            }
+        }
+    }
+
     // Create checklist_templates table for per-repository review checklist templates.
     conn.execute_batch(
         r#"
@@ -410,4 +422,29 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
     )?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn migrations_are_idempotent_and_add_integration_branch() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        run_migrations(&conn).unwrap();
+        // Running twice must not error (idempotent).
+        run_migrations(&conn).unwrap();
+
+        let cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(repositories)")
+            .unwrap()
+            .query_map([], |r| r.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert!(
+            cols.contains(&"integration_branch".to_string()),
+            "integration_branch column should exist, got: {cols:?}"
+        );
+    }
 }
