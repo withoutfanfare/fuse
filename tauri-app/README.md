@@ -1,5 +1,9 @@
 # Fuse MVP
 
+<p align="center">
+  <img src="src/assets/fuse-app-icon.png" alt="Fuse app icon" width="144" height="144">
+</p>
+
 Tauri desktop MVP for reviewer-first PR triage with local risk scoring and AI briefing generation.
 
 ## What this MVP does
